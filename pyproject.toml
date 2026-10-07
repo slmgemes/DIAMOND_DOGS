@@ -1,9 +1,7 @@
 [project]
 name = "diamond-dogs"
 version = "0.1.0"
-description = "Este proyecto consiste en crear una aplicación que me permita crear y visualizar modelos de
-regresión lineal simple y múltiple y utilizarlos para hacer predicciones. Además, se pueden guardar los
-modelos y cargarlos en cualquier momento"
+description = "Aplicación para crear, visualizar y guardar modelos de regresión lineal."
 readme = "README.md"
 authors = [
     { name = "Laura Martin Salvador", email = "laura.msalvador@udc.es" }
