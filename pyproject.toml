@@ -1,0 +1,22 @@
+[project]
+name = "diamond-dogs"
+version = "0.1.0"
+description = "Este proyecto consiste en crear una aplicación que me permita crear y visualizar modelos de
+regresión lineal simple y múltiple y utilizarlos para hacer predicciones. Además, se pueden guardar los
+modelos y cargarlos en cualquier momento"
+readme = "README.md"
+authors = [
+    { name = "Laura Martin Salvador", email = "laura.msalvador@udc.es" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=3.0.6",
+    "pytest>=9.1.1",
+]
+
+[project.scripts]
+diamond-dogs = "diamond_dogs:main"
+
+[build-system]
+requires = ["uv_build>=0.12.19,<0.13.0"]
+build-backend = "uv_build"
