@@ -96,3 +96,23 @@ tipo: descripción breve en presente o imperativo
     ```bash
     uv sync
 
+## 6. PRUEBAS AUTOMATIZADAS Y REGLAS DE FUSIÓN
+
+  ### 1. Ejecución de las pruebas
+    -Para ejecutar el conjunto de pruebas del proyecto desde la raíz del repositorio:
+      ```bash
+      uv run pytest
+      ```
+
+  ### 2. Cómo añadir pruebas nuevas
+    Ubicación y formato: Las pruebas se deben crear en la carpeta tests/ con el nombre test_<modulo>.py Cada función de prueba debe empezar por test_ (ej. def test_mi_funcion():).
+
+    Importaciones: Se debe importar el código desde el paquete creado con uv init --package que es diamond_dogs.
+
+    Datos sin archivos en el repositorio: Está prohibido subir archivos a la carpeta data/ para realizar pruebas. Los datos se deben definir directamente en el código del test usando variables o mediante el uso de carpetas temporales usando tmp_path de pytest, la cual elimina los archivos creados automáticamente al terminar la prueba.
+
+    Uso de `tmp_path`: Cuando una funcion test necesita crear o modificar archivos, se pasa `tmp_path` como argumento a la función test. Esto genera una carpeta temporal única en el sistema que `pytest` borra automáticamente al finalizar la ejecución.
+
+  ### 3. Cuáles son las reglas de fusión
+    Antes de fusionar cualquier rama de trabajo (feature, fix o docs) en dev, se debe actualizar la rama con los últimos cambios de dev 
+    y ejecutar todas las pruebas en local mediante uv run pytest. La fusión solo se autoriza si el 100 % de los tests se ejecutan con éxito.
