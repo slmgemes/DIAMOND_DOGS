@@ -66,3 +66,32 @@ def test_excel_dañado(tmp_path):
     importador = ImportadorDatos(archivo_corrupto)
     with pytest.raises(ValueError, match="no se puede leer"):
         importador.importar()
+
+def test_archivos_locales_():
+    """Comprueba la importación y la estructura de los datasets de ejemplo
+    ubicados en la carpeta local data/, validando que no estén vacíos
+    y que mantengan las extensiones y tipos correctos.
+    """
+    carpeta_data = Path("data")
+    
+    if not carpeta_data.exists():
+        pytest.skip("La carpeta data/ no existe en el entorno local.")
+
+    """meter en la lista las extensiones: ".sqlite", ".db" cuando esté hecho la parte de sql"""
+    extensiones_validas = {".csv", ".xlsx", ".xls"}
+    archivos = []
+
+    for f in carpeta_data.iterdir():
+        if (f.is_file()) and (f.suffix.lower() in extensiones_validas):
+            archivos.append(f)
+
+    if not archivos:
+        pytest.skip("No se encontraron archivos compatibles en la carpeta data/.")
+
+    for archivo in archivos:
+        importador = ImportadorDatos(archivo)
+        df, ext = importador.importar()
+        
+        assert not df.empty
+        assert ext in extensiones_validas
+        assert len(df.columns) > 0
