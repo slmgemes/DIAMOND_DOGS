@@ -153,14 +153,13 @@ class ProcesadorDatos:
         # Ejecuta la función correspondiente pasándole el DataFrame
         return funcion_procesamiento(self.df)
 
-#primero pasamos el archivo a la clase importador para guardar información de la ruta y extensión del archivo
-importador = ImportadorDatos("datos.csv")
+if __name__ == "__main__":
 
-#segundo,verificamos la existencia del archivo y la extensión,y devolvemos el DataFrame y la extensión del archivo
-df_crudo,ext = importador.importar()
+    #primero pasamos el archivo a la clase importador con la ruta del archivo a importar
+    importador = ImportadorDatos("datos.csv")
 
-#tercero, pasamos el DataFrame y la extensión a la clase procesador para validar los datos y manejar errores
-procesador = ProcesadorDatos(df_crudo, ext)
-
-# cuarto, procesas los datos del archivo para manejar errores y comprobar la validez de los datos
-df_limpio = procesador.procesar()
+    #luego ejecutamos el proceso de importación: 
+    # ---Se valida que la ruta exista y que la extensión esté soportada.
+    # ---Se lee el contenido y se valida que el archivo no esté vacío.
+    # ---Devuelve el DataFrame en bruto y su extensión.
+    df_crudo,ext = importador.importar()
