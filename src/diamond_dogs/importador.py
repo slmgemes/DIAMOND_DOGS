@@ -56,12 +56,18 @@ class ImportadorDatos:
 
     def leer_csv(self) -> pd.DataFrame:
         """Lee un archivo CSV."""
-        return pd.read_csv(self.ruta)
+        try:
+            return pd.read_csv(self.ruta)
+        except Exception as e:
+            raise ValueError(f"El archivo CSV está dañado o no se puede leer: {e}")
 
 
     def leer_excel(self) -> pd.DataFrame:
         """Lee un archivo de Excel (.xlsx o .xls)."""
-        return pd.read_excel(self.ruta)
+        try:
+            return pd.read_excel(self.ruta)
+        except Exception as e:
+            raise ValueError(f"El archivo Excel está dañado o no se puede leer: {e}")
 
 
     def leer_sqlite(self) -> pd.DataFrame:
@@ -82,7 +88,11 @@ class ImportadorDatos:
         if not funcion_lectura:
             raise ValueError(f"No hay un manejador definido para la extensión: {ext}")
 
-        return (funcion_lectura(),ext)
+        df = funcion_lectura()
+        if df.empty:
+            raise ValueError("El archivo cargado no contiene datos (está vacío).")
+
+        return (df,ext)
 
 
 
@@ -136,10 +146,12 @@ class ProcesadorDatos:
 
     def procesar(self) -> pd.DataFrame:
         """Selecciona el manejador de procesamiento adecuado según la extensión."""
+        if self._df.empty:
+            raise ValueError("No hay datos para procesar (el DataFrame está vacío).")
         funcion_procesamiento = self.manejadores_procesamiento.get(self._extension)
         
         # Ejecuta la función correspondiente pasándole el DataFrame
-        funcion_procesamiento(self.df)
+        return funcion_procesamiento(self.df)
 
 #primero pasamos el archivo a la clase importador para guardar información de la ruta y extensión del archivo
 importador = ImportadorDatos("datos.csv")
@@ -150,5 +162,5 @@ df_crudo,ext = importador.importar()
 #tercero, pasamos el DataFrame y la extensión a la clase procesador para validar los datos y manejar errores
 procesador = ProcesadorDatos(df_crudo, ext)
 
-# quarto, procesas los datos del archivo para manejar errores y comprobar la validez de los datos
+# cuarto, procesas los datos del archivo para manejar errores y comprobar la validez de los datos
 df_limpio = procesador.procesar()
