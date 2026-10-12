@@ -71,10 +71,19 @@ class ImportadorDatos:
 
 
     def leer_sqlite(self) -> pd.DataFrame:
-        """Parte de Ander:Cuando termine su Cafe despues del break"""
+       """Lee una base SQLite existente y devuelve su primera tabla."""
+       conexion = f"sqlite:///{self.ruta.resolve()}"
 
-        
-        raise NotImplementedError("Lectura de SQLite pendiente de implementar")
+       tablas = pd.read_sql_query(
+            "SELECT name FROM sqlite_master "
+            "WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+            conexion,
+        )["name"].tolist()
+
+       if not tablas:
+            raise ValueError("La base de datos no contiene tablas.")
+
+       return pd.read_sql_query(f'SELECT * FROM "{tablas[0]}"', conexion)
 
 
 
