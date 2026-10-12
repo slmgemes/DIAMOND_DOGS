@@ -67,6 +67,62 @@ def test_excel_dañado(tmp_path):
     with pytest.raises(ValueError, match="no se puede leer"):
         importador.importar()
 
+def test_sqli_alida(tmp_path):
+    """Comprueba que una base de datos SQLite con exactamente una tabla se importa correctamente."""
+    db_path = tmp_path / "correcta.db"
+    
+    conexion = sqlite3.connect(db_path)
+    conexion.execute("CREATE TABLE extensiones (tipos INT, nombre TEXT);")
+    conexion.execute("INSERT INTO extensiones VALUES (1, 'sql');")
+    conexion.commit()
+    conexion.close()
+    
+    importador = ImportadorDatos(db_path)
+    df, ext = importador.importar()
+    
+    assert ext in [".sqlite", ".db"]
+    assert not df.empty
+    assert len(df) == 1
+    assert list(df.columns) == ["tipos", "nombre"]
+
+def test_sql_notablas(tmp_path):
+    """Comprueba que lanza ValueError si la base de datos SQLite no contiene ninguna tabla."""
+    db_path = tmp_path / "vacia.db"
+    
+    conexion = sqlite3.connect(db_path)
+    conexion.close()
+    
+    importador = ImportadorDatos(db_path)
+    with pytest.raises(ValueError, match="no contiene tabla"):
+        importador.importar()
+
+def test_sql_multiples(tmp_path):
+    """Comprueba que lanza ValueError si la base de datos SQLite contiene más de una tabla."""
+    db_path = tmp_path / "multiples.db"
+    
+    # Creamos una base de datos con dos tablas
+    conexion = sqlite3.connect(db_path)
+    conexion.execute("CREATE TABLE tabla1 (tipos INT);")
+    conexion.execute("CREATE TABLE tabla2 (tipos INT);")
+    conexion.commit()
+    conexion.close()
+    
+    importador = ImportadorDatos(db_path)
+    with pytest.raises(ValueError, match="contiene"):
+        importador.importar()
+
+
+def test_sql_dañada(tmp_path):
+    """Comprueba que lanza ValueError si el archivo SQLite está dañado o malformado."""
+    db_path = tmp_path / "corrupta.db"
+    
+    # Escribimos texto plano simulando un archivo SQLite corrupto
+    db_path.write_text("esto no es una base de datos sqlite válida")
+    
+    importador = ImportadorDatos(db_path)
+    with pytest.raises(ValueError, match="dañado o no se puede leer"):
+        importador.importar()
+
 def test_archivos_locales_():
     """Comprueba la importación y la estructura de los datasets de ejemplo
     ubicados en la carpeta local data/, validando que no estén vacíos
@@ -77,8 +133,7 @@ def test_archivos_locales_():
     if not carpeta_data.exists():
         pytest.skip("La carpeta data/ no existe en el entorno local.")
 
-    """meter en la lista las extensiones: ".sqlite", ".db" cuando esté hecho la parte de sql"""
-    extensiones_validas = {".csv", ".xlsx", ".xls"}
+    extensiones_validas = {".csv", ".xlsx", ".xls", ".sqlite", ".db"}
     archivos = []
 
     for f in carpeta_data.iterdir():
