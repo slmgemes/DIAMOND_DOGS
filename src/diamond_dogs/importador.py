@@ -2,14 +2,54 @@ from pathlib import Path
 import pandas as pd
 
 
+
+
 class ImportadorDatos:
-    """Clase para validar y leer archivos de datos en diferentes formatos."""
+    """Clase para validar y leer archivos de datos en diferentes formatos.
+
+    Attributes
+    ----------
+    ruta : str
+        Ruta del archivo que se va a importar.
+    extensiones_validas : set[str]
+        Extensiones de archivo admitidas.
+    manejadores : dict[str, callable]
+        Funciones encargadas de leer cada formato de archivo.
+
+    Methods
+    -------
+    verificar_existencia()
+        Verifica si la ruta especificada existe en el sistema.
+    verificar_extension()
+        Verifica si la extensión del archivo está soportada.
+    leer_csv()
+        Lee un archivo CSV.
+    leer_excel()
+        Lee un archivo de Excel.
+    leer_sqlite()
+        Lee una base de datos SQLite existente.
+    importar()
+        Valida el archivo y ejecuta la importación según su formato.
+    """
+
 
     def __init__(self, ruta: str) -> None:
+        """Asigna atributos al objeto.
+
+        Parameters
+        ----------
+        ruta : Path
+            Ruta del archivo que se va a importar.
+
+        Returns
+        -------
+        None.
+        """
         self.ruta = ruta
         self.extensiones_validas = {".csv", ".xlsx", ".xls", ".sqlite", ".db"}
-        
-        # Diccionario de despacho integrado en el estado de la clase
+
+        # Diccionario de despacho integrado en el estado de la clase.
+        # Asocia cada extensión con el método encargado de leer el archivo.
         self._manejadores = {
             ".csv": self.leer_csv,
             ".xlsx": self.leer_excel,
@@ -18,36 +58,59 @@ class ImportadorDatos:
             ".db": self.leer_sqlite,
         }
 
+
     @property
     def ruta(self) -> Path:
         return self._ruta
+
     @ruta.setter
     def ruta(self, nueva_ruta: str) -> None:
         self._ruta = Path(nueva_ruta)
 
+
     @property
     def extensiones_validas(self) -> set[str]:
         return self._extensiones_validas
+
     @extensiones_validas.setter
     def extensiones_validas(self, nuevas_extensiones: set[str]) -> None:
         self._extensiones_validas = nuevas_extensiones
 
+
     @property
     def manejadores(self) -> dict[str, callable]:
         return self._manejadores
+
     @manejadores.setter
     def manejadores(self, nuevos_manejadores: dict[str, callable]) -> None:
         self._manejadores = nuevos_manejadores
 
-    
+
     def verificar_existencia(self) -> None:
-        """Verifica si la ruta especificada existe en el sistema."""
+        """Verifica si la ruta especificada existe en el sistema.
+
+        Raises
+        ------
+        FileNotFoundError
+            Si el archivo no existe.
+        """
         if not self.ruta.exists():
             raise FileNotFoundError(f"El archivo no existe: {self.ruta}")
 
 
     def verificar_extension(self) -> str:
-        """Verifica si la extensión del archivo está soportada."""
+        """Verifica si la extensión del archivo está soportada.
+
+        Returns
+        -------
+        str
+            Extensión del archivo en minúsculas.
+
+        Raises
+        ------
+        ValueError
+            Si la extensión no está soportada.
+        """
         ext = self.ruta.suffix.lower()
         if ext not in self.extensiones_validas:
             raise ValueError(f"Extensión no soportada: {ext}")
@@ -55,7 +118,18 @@ class ImportadorDatos:
 
 
     def leer_csv(self) -> pd.DataFrame:
-        """Lee un archivo CSV."""
+        """Lee un archivo CSV.
+
+        Returns
+        -------
+        pd.DataFrame
+            Datos contenidos en el archivo CSV.
+
+        Raises
+        ------
+        ValueError
+            Si el archivo está dañado o no se puede leer.
+        """
         try:
             return pd.read_csv(self.ruta)
         except Exception as e:
@@ -63,7 +137,18 @@ class ImportadorDatos:
 
 
     def leer_excel(self) -> pd.DataFrame:
-        """Lee un archivo de Excel (.xlsx o .xls)."""
+        """Lee un archivo de Excel (.xlsx o .xls).
+
+        Returns
+        -------
+        pd.DataFrame
+            Datos contenidos en el archivo Excel.
+
+        Raises
+        ------
+        ValueError
+            Si el archivo está dañado o no se puede leer.
+        """
         try:
             return pd.read_excel(self.ruta)
         except Exception as e:
@@ -71,7 +156,19 @@ class ImportadorDatos:
 
 
     def leer_sqlite(self) -> pd.DataFrame:
-        """Lee una base SQLite existente y devuelve su primera tabla."""
+        """Lee una base SQLite existente y devuelve su primera tabla.
+
+        Returns
+        -------
+        pd.DataFrame
+            Datos contenidos en la tabla de la base de datos.
+
+        Raises
+        ------
+        ValueError
+            Si la base de datos no contiene tablas, contiene varias
+            tablas o no se puede leer.
+        """
         try:
             conexion = f"sqlite:///{self.ruta.resolve()}"
 
@@ -96,11 +193,25 @@ class ImportadorDatos:
 
 
     def importar(self) ->(tuple[pd.DataFrame, str]):
-        """Valida la existencia, la extensión y ejecuta la importación según el formato."""
+        """Valida la existencia, la extensión y ejecuta la importación según el formato.
+
+        Returns
+        -------
+        tuple[pd.DataFrame, str]
+            DataFrame con los datos importados y extensión del archivo.
+
+        Raises
+        ------
+        FileNotFoundError
+            Si el archivo no existe.
+        ValueError
+            Si la extensión no está soportada, no hay un manejador
+            definido o el archivo no contiene datos.
+        """
         self.verificar_existencia()
         ext = self.verificar_extension()
 
-        # Buscamos la función directamente en el diccionario del objeto
+        # Buscamos la función directamente en el diccionario del objeto.
         funcion_lectura = self._manejadores.get(ext)
         if not funcion_lectura:
             raise ValueError(f"No hay un manejador definido para la extensión: {ext}")
