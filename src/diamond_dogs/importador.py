@@ -6,8 +6,8 @@ class ImportadorDatos:
     """Clase para validar y leer archivos de datos en diferentes formatos."""
 
     def __init__(self, ruta: str) -> None:
-        self._ruta = Path(ruta)
-        self._extensiones_validas = {".csv", ".xlsx", ".xls", ".sqlite", ".db"}
+        self.ruta = ruta
+        self.extensiones_validas = {".csv", ".xlsx", ".xls", ".sqlite", ".db"}
         
         # Diccionario de despacho integrado en el estado de la clase
         self._manejadores = {
