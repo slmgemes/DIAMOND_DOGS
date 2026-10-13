@@ -1,6 +1,6 @@
 from pathlib import Path
 import pandas as pd
-
+from sqlalchemy import create_engine
 
 
 
@@ -170,21 +170,22 @@ class ImportadorDatos:
             tablas o no se puede leer.
         """
         try:
-            conexion = f"sqlite:///{self.ruta.resolve()}"
+            con = f"sqlite:///{self.ruta.resolve()}"
+            engine=create_engine(con)
+            with engine.connect() as conexion:
+                tablas = pd.read_sql_query(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+                    conexion,
+                )["name"].tolist()
 
-            tablas = pd.read_sql_query(
-                "SELECT name FROM sqlite_master "
-                "WHERE type='table' AND name NOT LIKE 'sqlite_%'",
-                conexion,
-            )["name"].tolist()
+                if not tablas:
+                    raise ValueError("La base de datos no contiene tablas.")
 
-            if not tablas:
-                raise ValueError("La base de datos no contiene tablas.")
+                if len(tablas) > 1:
+                    raise ValueError(f"La base de datos contiene {len(tablas)} tablas (se esperaba exactamente una).")
 
-            if len(tablas) > 1:
-                raise ValueError(f"La base de datos contiene {len(tablas)} tablas (se esperaba exactamente una).")
-
-            return pd.read_sql_query(f'SELECT * FROM "{tablas[0]}"', conexion)
+                return pd.read_sql_query(f'SELECT * FROM "{tablas[0]}"', conexion)
         except Exception as e:
             if isinstance(e, ValueError):
                 raise e
