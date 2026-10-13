@@ -1,7 +1,5 @@
 from diamond_dogs.importador import ImportadorDatos
 
-from diamond_dogs.importador import ImportadorDatos
-
 
 def comprobar_datasets() -> None:
     archivos = [
