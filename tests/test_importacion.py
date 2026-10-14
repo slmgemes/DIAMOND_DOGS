@@ -67,7 +67,7 @@ def test_excel_dañado(tmp_path):
     with pytest.raises(ValueError, match="no se puede leer"):
         importador.importar()
 
-def test_sqli_alida(tmp_path):
+def test_sql_salida(tmp_path):
     """Comprueba que una base de datos SQLite con exactamente una tabla se importa correctamente."""
     db_path = tmp_path / "correcta.db"
     
@@ -108,7 +108,7 @@ def test_sql_multiples(tmp_path):
     conexion.close()
     
     importador = ImportadorDatos(db_path)
-    with pytest.raises(ValueError, match="contiene"):
+    with pytest.raises(ValueError, match="se esperaba exactamente una"):
         importador.importar()
 
 
