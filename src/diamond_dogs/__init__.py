@@ -1,2 +1,3 @@
+from diamond_dogs.guii import main as main_gui
 def main() -> None:
-    print("Hello from diamond-dogs!")
+    main_gui()

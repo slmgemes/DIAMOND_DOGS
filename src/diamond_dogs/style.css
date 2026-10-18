@@ -1,0 +1,102 @@
+.app{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+.titulo {
+    
+    margin-bottom: 20px;
+}
+.importar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+    width: 100%;
+    min-height: 400px;
+}
+.fila-archivo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-width: 700px;
+}
+
+.boton-archivo {
+    width: 300px;
+}
+
+.ruta {
+    min-width: 300px;
+    height: 50px;
+    background: #524cb9;
+    color: white;
+    font-weight: 600;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+}
+
+.archivo-oculto {
+    display: none;
+}
+
+.boton-archivo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 300px;
+    height: 50px;
+    background: #4f46e5;
+    color: white;
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.boton-archivo:hover {
+    background: #4338ca;
+}
+
+.boton-archivo:active {
+    transform: scale(0.97);
+}
+.contenedor-tabla {
+    min-width: 700px;
+    height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    position: relative;      /* nuevo */
+}
+
+.vacio {
+    position: absolute;
+    inset: 0;                /* ocupa todo el recuadro */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: gray;
+    font-size: 20px;
+    margin: 0;
+}
+
+.tabla {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tabla th,
+.tabla td {
+    border: 1px solid #ccc;
+    padding: 0.5rem;
+    text-align: center;
+}
+
+.tabla th {
+    background: #f3f3f3;
+}
