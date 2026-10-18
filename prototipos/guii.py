@@ -103,3 +103,6 @@ def main():
         Gui()
 
     ui.run(reload=False, title="Diamond Dogs")
+
+if __name__ == "__main__":
+    main()
