@@ -16,8 +16,9 @@ class Gui:
         self.ext = ""
 
         with ui.element("div").classes("app"):
-            ui.html("Diamond Dogs", tag="h1", sanitize=False).classes("titulo")
+            
 
+            ui.html("Diamond Dogs", tag="h2", sanitize=False).classes("titulo")
             with ui.element("div").classes("importar"):
 
                 with ui.element("div").classes("fila-archivo"):
@@ -29,6 +30,31 @@ class Gui:
                     self.mensaje_vacio = ui.html(
                         "Sin datos. Selecciona un archivo para empezar.", tag="p", sanitize=False
                     ).classes("vacio")
+            with ui.element("div").classes("formulario"):
+
+                self.desplegable = ui.select(
+                    ["Opción 1", "Opción 2", "Opción 3", "Opción 4", "Opción 5"],
+                    value="Opción 1",
+                ).props('outlined').classes("selector")
+
+                self.entrada_texto = ui.textarea(placeholder="Escribe aquí...")
+                self.entrada_texto.props('outlined input-style="height: 250px; resize: none"')
+                self.entrada_texto.classes("area-texto")
+                self.etiqueta_mensaje = ui.html("", tag="p", sanitize=False).classes("mensaje")
+
+                ui.html("Mostrar texto", tag="button", sanitize=False).classes("boton-archivo").on("click", self.mostrar_texto)
+
+
+    def mostrar_texto(self):
+        texto = self.entrada_texto.value or ""
+
+        if texto.strip() == "":
+            mensaje = f"La opción elegida es: {self.desplegable.value}"
+        else:
+            mensaje = f"Texto ingresado: {texto}"
+
+        self.etiqueta_mensaje.set_content(escape(mensaje))
+            
 
     def elegir_ruta(self):
         raiz = tk.Tk()
@@ -43,9 +69,10 @@ class Gui:
         if ruta:
             self.ruta = ruta
             self.etiqueta_ruta.set_content(escape(ruta))
-        importador = ImportadorDatos(self.ruta)
-        self.df, self.ext = importador.importar()
-        self.mostrar_datos_en_tabla()
+
+            importador = ImportadorDatos(self.ruta)
+            self.df, self.ext = importador.importar()
+            self.mostrar_datos_en_tabla()
 
     def mostrar_datos_en_tabla(self):
         if self.df is None:
