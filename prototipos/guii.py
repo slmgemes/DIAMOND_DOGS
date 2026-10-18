@@ -14,7 +14,7 @@ class Gui:
     ----------
     ruta : str
         Ruta del archivo seleccionado por el usuario.
-    df : pd.DataFrame or None
+    df : pd.DataFrame
         DataFrame con los datos importados.
     ext : str
         Extensión del archivo importado.
