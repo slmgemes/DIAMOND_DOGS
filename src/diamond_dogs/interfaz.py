@@ -138,7 +138,7 @@ class Gui:
         None.
         """
         # Ejecuta el selector de archivos sin bloquear el bucle de eventos.
-        ruta = await run.io_bound(self.elegir_ruta)
+        ruta = self.elegir_ruta()
 
         if not ruta:
             return
@@ -146,19 +146,26 @@ class Gui:
         try:
             ruta_absoluta = Path(ruta).resolve()
 
-            self.ruta = str(ruta_absoluta)
-            self.etiqueta_ruta.set_content(escape(self.ruta))
-
             # Importa el archivo mediante la clase ImportadorDatos.
             importador = ImportadorDatos(ruta_absoluta)
-            self.df, self.ext = importador.importar()
+            df_nuevo, ext_nuevo = importador.importar()
+            self.df = df_nuevo
+            self.ext = ext_nuevo
+            self.ruta = str(ruta_absoluta)
 
             # Muestra los datos importados en la tabla de la interfaz.
+            self.etiqueta_ruta.set_content(escape(self.ruta))
             self.mostrar_datos_en_tabla()
 
         except Exception as e:
+            error_str = str(e)
+            
+            if "float" in error_str or "replace" in error_str or "attribute" in error_str:
+                return
 
-            ui.notify(str(e), type="negative", position="center", timeout=0, close_button=True)
+            texto_error = error_str.split(":")[0] if ":" in error_str else error_str
+            
+            ui.notify(texto_error, type="negative", position="center", timeout=5000)
 
     def mostrar_datos_en_tabla(self):
         """Muestra las primeras veinte filas del DataFrame en la tabla.
@@ -185,7 +192,8 @@ class Gui:
                         for valor in fila:
                             ui.html(escape(valor), tag="td", sanitize=False)
 
-        self.mensaje_vacio.set_visibility(False)
+            self.mensaje_vacio.set_visibility(False)
+ 
 
     def mostrar_texto(self):
         """Muestra un mensaje según la opción seleccionada y el texto introducido.

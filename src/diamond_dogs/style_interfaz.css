@@ -69,8 +69,9 @@ body {
 .contenedor-tabla {
     position: relative;
     min-width: 700px;
+    max-width: 75vw;
     height: 300px;
-    overflow-y: auto;
+    overflow: auto;
     background: #fbf6e9;
     border: 1px solid #c9b48a;
     border-radius: 8px;
@@ -87,8 +88,10 @@ body {
 }
 
 .tabla {
-    width: 100%;
+    width: auto; 
+    min-width: 100%;
     border-collapse: collapse;
+    white-space: nowrap;
 }
 
 .tabla th,
