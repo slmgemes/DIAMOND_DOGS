@@ -4,6 +4,7 @@ from pathlib import Path
 from tkinter import filedialog
 from nicegui import run, ui
 from diamond_dogs.importador import ImportadorDatos
+from diamond_dogs.seleccion import REGRESION_MULTIPLE, validar_seleccion
 
 
 class Gui:
@@ -211,7 +212,70 @@ class Gui:
             mensaje = f"Texto ingresado: {texto}"
 
         self.etiqueta_mensaje.set_content(escape(mensaje))
+    def _columnas_features(self):
+        """Devuelve las features seleccionadas siempre como lista."""
+        valor = self.sel_features.value
+        if valor is None:
+            return []
+        return list(valor) if isinstance(valor, (list, tuple, set)) else [valor]
 
+    def actualizar_selectores(self):
+        """Carga las columnas del dataset en los selectores y borra la selección previa.
+
+        Returns
+        -------
+        None.
+        """
+        columnas = list(self.df.columns)
+        self.features, self.target = [], None
+        self.etiqueta_seleccion.set_content("")
+        self.sel_features.set_options(
+            columnas, value=[] if REGRESION_MULTIPLE else None
+        )
+        self.sel_target.set_options(columnas, value=None)
+        self.contenedor_seleccion.set_visibility(True)
+
+    def al_cambiar_target(self, _=None):
+        """Quita de las features la columna elegida como salida.
+
+        Returns
+        -------
+        None.
+        """
+        if self.df is None:
+            return
+        target = self.sel_target.value
+        columnas = [c for c in self.df.columns if c != target]
+        actuales = [c for c in self._columnas_features() if c != target]
+        valor = actuales if REGRESION_MULTIPLE else (actuales[0] if actuales else None)
+        self.sel_features.set_options(columnas, value=valor)
+
+    def confirmar_seleccion(self):
+        """Valida y registra las columnas elegidas como entrada y salida.
+
+        Returns
+        -------
+        None.
+        """
+        features = self._columnas_features()
+        target = self.sel_target.value
+        errores = validar_seleccion(self.df, features, target, REGRESION_MULTIPLE)
+
+        if errores:
+            # Una selección inválida invalida también la confirmada antes.
+            self.features, self.target = [], None
+            self.etiqueta_seleccion.set_content("")
+            ui.notify(
+                "\n".join(errores), type="negative", position="center",
+                timeout=5000, multi_line=True,
+            )
+            return
+
+        self.features, self.target = features, target
+        self.etiqueta_seleccion.set_content(escape(
+            f"Selección confirmada. Entrada: {', '.join(map(str, features))}. "
+            f"Salida: {target}."
+        ))
 
 def main():
     """Configura la página principal e inicia la aplicación.
