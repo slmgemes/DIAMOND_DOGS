@@ -76,13 +76,39 @@ class Gui:
                     ).classes("ruta")
 
                 # Contenedor de la tabla que mostrará los datos importados.
-                with ui.element("div").classes("contenedor-tabla"):
+                with ui.element("div").classes(
+                    "contenedor-tabla"
+                ) as self.contenedor_tabla:
                     self.tabla = ui.element("table").classes("tabla")
                     self.mensaje_vacio = ui.html(
                         "Sin datos. Selecciona un archivo para empezar.",
                         tag="p",
                         sanitize=False
                     ).classes("vacio")
+
+                with ui.element("div").classes(
+                    "seleccion-columnas formulario"
+                ) as self.contenedor_seleccion:
+                    self.sel_features = ui.select(
+                        [],
+                        label="Columnas de entrada",
+                        multiple=REGRESION_MULTIPLE,
+                        value=[] if REGRESION_MULTIPLE else None,
+                    ).props("outlined").classes("selector")
+                    self.sel_target = ui.select(
+                        [],
+                        label="Columna de salida",
+                        value=None,
+                    ).props("outlined").classes("selector")
+                    self.sel_target.on_value_change(self.al_cambiar_target)
+                    ui.button(
+                        "Confirmar selección",
+                        on_click=self.confirmar_seleccion,
+                    ).classes("boton-archivo")
+                    self.etiqueta_seleccion = ui.html(
+                        "", tag="p", sanitize=False
+                    ).classes("mensaje")
+                self.contenedor_seleccion.set_visibility(False)
 
             # Contenedor de los controles para introducir y mostrar texto.
             with ui.element("div").classes("formulario"):
@@ -156,6 +182,7 @@ class Gui:
 
             # Muestra los datos importados en la tabla de la interfaz.
             self.etiqueta_ruta.set_content(escape(self.ruta))
+            self.actualizar_selectores()
             self.mostrar_datos_en_tabla()
 
         except Exception as e:
@@ -179,6 +206,13 @@ class Gui:
             return
 
         self.tabla.clear()
+        if self.df.empty or len(self.df.columns) == 0:
+            self._mostrar_mensaje_vacio(
+                "El archivo no contiene datos o columnas para mostrar."
+            )
+            self.contenedor_seleccion.set_visibility(False)
+            return
+
         with self.tabla:
             # Construye la cabecera con los nombres de las columnas.
             with ui.element("thead"):
@@ -193,7 +227,21 @@ class Gui:
                         for valor in fila:
                             ui.html(escape(valor), tag="td", sanitize=False)
 
-            self.mensaje_vacio.set_visibility(False)
+        if self.mensaje_vacio is not None:
+            self.mensaje_vacio.delete()
+            self.mensaje_vacio = None
+
+    def _mostrar_mensaje_vacio(self, mensaje):
+        """Crea o actualiza el mensaje dentro del contenedor de la tabla."""
+        if self.mensaje_vacio is None:
+            with self.contenedor_tabla:
+                self.mensaje_vacio = ui.html(
+                    mensaje, tag="p", sanitize=False
+                ).classes("vacio")
+            return
+
+        self.mensaje_vacio.set_content(mensaje)
+        self.mensaje_vacio.set_visibility(True)
  
 
     def mostrar_texto(self):
@@ -212,6 +260,7 @@ class Gui:
             mensaje = f"Texto ingresado: {texto}"
 
         self.etiqueta_mensaje.set_content(escape(mensaje))
+
     def _columnas_features(self):
         """Devuelve las features seleccionadas siempre como lista."""
         valor = self.sel_features.value
@@ -226,14 +275,16 @@ class Gui:
         -------
         None.
         """
-        columnas = list(self.df.columns)
+        columnas = list(self.df.columns) if self.df is not None else []
         self.features, self.target = [], None
         self.etiqueta_seleccion.set_content("")
         self.sel_features.set_options(
             columnas, value=[] if REGRESION_MULTIPLE else None
         )
         self.sel_target.set_options(columnas, value=None)
-        self.contenedor_seleccion.set_visibility(True)
+        self.contenedor_seleccion.set_visibility(
+            bool(columnas) and not self.df.empty
+        )
 
     def al_cambiar_target(self, _=None):
         """Quita de las features la columna elegida como salida.

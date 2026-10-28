@@ -32,6 +32,13 @@ def validar_seleccion(df, features, target, multiple=REGRESION_MULTIPLE):
     errores = []
     features = list(features or [])
 
+    if df is None:
+        return ["No hay ningún dataset cargado."]
+    if len(df.columns) == 0:
+        return ["El dataset no contiene columnas."]
+    if df.empty:
+        return ["El dataset no contiene datos."]
+
     if not features:
         errores.append("Falta seleccionar al menos una columna de entrada (features).")
     elif not multiple and len(features) > 1:

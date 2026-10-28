@@ -32,6 +32,26 @@ def test_falta_todo(df):
     assert len(validar_seleccion(df, [], None)) == 2
 
 
+def test_sin_dataset():
+    assert validar_seleccion(None, [], None) == [
+        "No hay ningún dataset cargado."
+    ]
+
+
+def test_dataset_sin_columnas():
+    df_sin_columnas = pd.DataFrame(index=[0, 1])
+    assert validar_seleccion(df_sin_columnas, [], None) == [
+        "El dataset no contiene columnas."
+    ]
+
+
+def test_dataset_sin_filas():
+    df_sin_filas = pd.DataFrame(columns=["a", "y"])
+    assert validar_seleccion(df_sin_filas, [], None) == [
+        "El dataset no contiene datos."
+    ]
+
+
 def test_target_tambien_entrada(df):
     errores = validar_seleccion(df, ["a", "y"], "y")
     assert any("entrada y salida" in e for e in errores)
