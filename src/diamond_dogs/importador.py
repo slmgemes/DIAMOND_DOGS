@@ -132,6 +132,8 @@ class ImportadorDatos:
         """
         try:
             return pd.read_csv(self.ruta)
+        except pd.errors.EmptyDataError as e:
+            raise ValueError("El archivo CSV no contiene datos (está vacío).") from e
         except Exception as e:
             raise ValueError(f"El archivo CSV está dañado o no se puede leer: {e}")
 

@@ -34,10 +34,20 @@ def test_importar_csv_exitoso(tmp_path):
     assert list(df.columns) == ["tipos", "nombre"]
 
 def test_archivo_vacio(tmp_path):
-    """Comprueba que lanza ValueError si el archivo no contiene datos."""
+    """Comprueba que un CSV con cabecera pero sin filas se rechaza."""
     archivo_vacio = tmp_path / "vacio.csv"
     archivo_vacio.write_text("tipos,nombre\n")
     
+    importador = ImportadorDatos(archivo_vacio)
+    with pytest.raises(ValueError, match="no contiene datos"):
+        importador.importar()
+
+
+def test_documento_vacio(tmp_path):
+    """Comprueba que un CSV completamente vacío se rechaza como tal."""
+    archivo_vacio = tmp_path / "documento_vacio.csv"
+    archivo_vacio.write_text("")
+
     importador = ImportadorDatos(archivo_vacio)
     with pytest.raises(ValueError, match="no contiene datos"):
         importador.importar()
