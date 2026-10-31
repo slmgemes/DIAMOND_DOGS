@@ -2,10 +2,10 @@ import tkinter as tk
 from html import escape
 from pathlib import Path
 from tkinter import filedialog
-from nicegui import run, ui
+from nicegui import  ui
 from diamond_dogs.importador import ImportadorDatos
 from diamond_dogs.seleccion import REGRESION_MULTIPLE, validar_seleccion
-
+from diamond_dogs.separacion_datos import separar_datos
 
 class Gui:
     """Clase para crear la interfaz gráfica de importación y visualización de datos.
@@ -67,7 +67,7 @@ class Gui:
                         "Seleccionar archivo",
                         tag="button",
                         sanitize=False
-                    ).classes("boton-archivo").on("click", self.elegir_archivo)
+                    ).classes("boton").on("click", self.elegir_archivo)
 
                     self.etiqueta_ruta = ui.html(
                         "Ningún archivo seleccionado",
@@ -95,21 +95,71 @@ class Gui:
                         label="Columnas de entrada",
                         multiple=REGRESION_MULTIPLE,
                         value=[] if REGRESION_MULTIPLE else None,
-                    ).props("outlined").classes("selector")
+                    ).props("outlined use-chips").classes("selector")
                     self.sel_target = ui.select(
                         [],
                         label="Columna de salida",
                         value=None,
                     ).props("outlined").classes("selector")
                     self.sel_target.on_value_change(self.al_cambiar_target)
-                    ui.button(
+                    ui.html(
                         "Confirmar selección",
-                        on_click=self.confirmar_seleccion,
-                    ).classes("boton-archivo")
+                        tag="button",
+                        sanitize=False
+                    ).classes("boton").on("click", self.confirmar_seleccion)
                     self.etiqueta_seleccion = ui.html(
                         "", tag="p", sanitize=False
-                    ).classes("mensaje")
+                    ).classes("mensaje-seleccion")
                 self.contenedor_seleccion.set_visibility(False)
+
+                #contenedor de separacion
+
+                with ui.element("div").classes(
+                    "porcentajes"
+                ) as self.contenedor_porcentajes:
+                    # Porcentaje de test: lo escribe el usuario.
+                    self.entrada_test = ui.number(
+                        label="Test (%)", value=20
+                    ).props("outlined").classes("entrada-test")
+
+                    # Porcentaje de entrenamiento: se calcula solo y no se puede tocar.
+                    self.entrada_train = ui.number(
+                        label="Entrenamiento (%)", value=80
+                    ).props("outlined").classes("entrada-train")
+                    self.entrada_train.disable()
+
+                    # Semilla para que la separación sea reproducible.
+                    self.entrada_semilla = ui.number(
+                        label="Semilla", value=42, min=0, precision=0
+                    ).props("outlined").classes("entrada-semilla")
+
+                    ui.html(
+                        "Separar datos",
+                        tag="button",
+                        sanitize=False
+                    ).classes("boton").on("click", self.separacion_datos)
+
+
+                    self.contenedor_porcentajes.set_visibility(False)
+
+                    # Cuando cambia el test, el entrenamiento se actualiza solo.
+                    self.entrada_train.bind_value_from(
+                        self.entrada_test, "value", backward=lambda v: 100 - v
+                    )
+
+                # Resultado de la separación: oculto hasta pulsar "Separar datos".
+                with ui.element("div").classes(
+                    "resultado-separacion"
+                ) as self.resultado_separacion:
+                    self.etiqueta_confirmacion = ui.html(
+                        "", tag="p", sanitize=False
+                    ).classes("mensaje-confirmacion")
+                    self.etiqueta_filas = ui.html(
+                        "", tag="p", sanitize=False
+                    ).classes("mensaje-filas")
+
+                    self.resultado_separacion.set_visibility(False)
+
 
             # Contenedor de los controles para introducir y mostrar texto.
             with ui.element("div").classes("formulario"):
@@ -128,7 +178,7 @@ class Gui:
                     "Mostrar texto",
                     tag="button",
                     sanitize=False
-                ).classes("boton-archivo").on("click", self.mostrar_texto)
+                ).classes("boton").on("click", self.mostrar_texto)
 
     def elegir_ruta(self):
         """Abre el selector de archivos del sistema.
@@ -234,7 +284,6 @@ class Gui:
         self.mensaje_vacio.set_content(mensaje)
         self.mensaje_vacio.set_visibility(True)
 
-
     def mostrar_texto(self):
         """Muestra un mensaje según la opción seleccionada y el texto introducido.
 
@@ -268,7 +317,7 @@ class Gui:
         """
         columnas = list(self.df.columns) if self.df is not None else []
         self.features, self.target = [], None
-        self.etiqueta_seleccion.set_content("")
+        self.etiqueta_seleccion.set_visibility(False)
         self.sel_features.set_options(
             columnas, value=[] if REGRESION_MULTIPLE else None
         )
@@ -276,6 +325,9 @@ class Gui:
         self.contenedor_seleccion.set_visibility(
             bool(columnas) and not self.df.empty
         )
+        self.x_train = self.x_test = self.y_train = self.y_test = None
+        self.contenedor_porcentajes.set_visibility(False)
+        self.resultado_separacion.set_visibility(False)
 
     def al_cambiar_target(self, _=None):
         """Quita de las features la columna elegida como salida.
@@ -306,7 +358,9 @@ class Gui:
         if errores:
             # Una selección inválida invalida también la confirmada antes.
             self.features, self.target = [], None
-            self.etiqueta_seleccion.set_content("")
+            self.contenedor_porcentajes.set_visibility(False)
+            self.etiqueta_seleccion.set_visibility(False)
+            self.resultado_separacion.set_visibility(False)
             ui.notify(
                 "\n".join(errores), type="negative", position="center",
                 timeout=5000, multi_line=True,
@@ -314,10 +368,31 @@ class Gui:
             return
 
         self.features, self.target = features, target
-        self.etiqueta_seleccion.set_content(escape(
-            f"Selección confirmada. Entrada: {', '.join(map(str, features))}. "
-            f"Salida: {target}."
-        ))
+        self.etiqueta_seleccion.set_visibility(True)
+        self.etiqueta_seleccion.set_content(
+            "<b style='font-size: 22px; '>Selección confirmada</b><br>"
+            f"Entrada: {escape(', '.join(map(str, features)))}<br>"
+            f"Salida: {escape(str(target))}"
+        )
+
+        self.x_train = self.x_test = self.y_train = self.y_test = None
+        self.contenedor_porcentajes.set_visibility(True)
+        self.resultado_separacion.set_visibility(False)
+
+    def separacion_datos(self):
+
+        self.x_train, self.x_test, self.y_train, self.y_test = separar_datos(self.df,self.features, self.target,self.entrada_test.value ,semilla=self.entrada_semilla.value)
+
+        self.etiqueta_confirmacion.set_content("División realizada correctamente.")
+        self.etiqueta_filas.set_content(
+            f"Entrenamiento: {len(self.x_train)} filas<br>"
+            f"Test: {len(self.x_test)} filas"
+        )
+        self.resultado_separacion.set_visibility(True)
+        print(self.x_train,self.entrada_semilla)
+
+        
+
 
 def main():
     """Configura la página principal e inicia la aplicación.

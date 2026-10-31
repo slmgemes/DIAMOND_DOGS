@@ -5,6 +5,15 @@ body {
   font-size: 18px;
 }
 
+.q-field--float .q-field__label {
+    transform: translateY(-50%) scale(0.75);
+}
+
+.q-field__label{
+    font-size: 20px;
+    top: 15px !important;
+}
+
 .app {
   display: flex;
   flex-direction: column;
@@ -39,7 +48,7 @@ body {
   width: 700px;
 }
 
-.boton-archivo {
+.boton{
   width: 300px;
   height: 50px;
   background: #7a2e2e;
@@ -47,9 +56,21 @@ body {
   border: none;
   border-radius: 10px;
   cursor: pointer;
+  transition: 0.2s;
 }
 
-.boton-archivo:hover {
+button.boton{
+  width: 300px;
+  height: 50px;
+  background: #7a2e2e;
+  color: #fbf6e9;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.boton:hover {
   background: #5c1f1f;
   scale: 0.97;
 }
@@ -83,7 +104,7 @@ body {
   transform: translate(-50%, -50%);
   white-space: nowrap;
   color: #8a7a62;
-  font-size: 20px;
+  font-size: 28px;
 }
 
 .tabla {
@@ -102,10 +123,10 @@ body {
   --ag-border-color: #c9b48a;
   --ag-row-hover-color: #f4ecd8;
   --ag-font-family: "Times New Roman", Times, serif;
-  --ag-font-size: 16px;
+  --ag-font-size: 18px !important;
 }
 
-/* ---------- Formulario ---------- */
+/* ---------- otros ---------- */
 .formulario {
   display: flex;
   flex-direction: column;
@@ -128,4 +149,71 @@ body {
   font-size: 20px;
   text-align: center;
   overflow-wrap: anywhere;
+}
+
+.porcentajes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.entrada-test,
+.entrada-train {
+    width: 300px;
+    --q-primary: #7a2e2e;
+    font-size: 18px;
+}
+.selector {
+    width: 700px;
+    --q-primary: #7a2e2e;
+    font-size: 18px;
+}
+.entrada-semilla {
+  width: 300px;
+  font-size: 18px;
+  --q-primary: #7a2e2e;
+}
+
+.resultado-separacion {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 700px;
+    padding: 12px;
+    background: #fbf6e9;
+    border: 1px solid #c9b48a;
+    border-radius: 10px;
+}
+
+.mensaje-confirmacion {
+    color: #7a2e2e;
+    font-weight: 700;
+    text-align: center;
+    font-size: 22px;
+}
+
+.mensaje-filas {
+    text-align: center;
+    font-size: 18px;
+}
+
+.mensaje-seleccion {
+    width: 700px;
+    padding: 12px;
+    text-align: center;
+    overflow-wrap: anywhere;
+    font-family: "Times New Roman", Times, serif;
+    background: #fbf6e9;
+    border: 1px solid #c9b48a;
+    border-radius: 10px;
+}
+
+.mensaje-seleccion b {
+    color: #7a2e2e;
+}
+
+.mensaje-seleccion:empty {
+    display: none;
 }
