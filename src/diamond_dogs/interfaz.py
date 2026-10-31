@@ -79,13 +79,14 @@ class Gui:
                 with ui.element("div").classes(
                     "contenedor-tabla"
                 ) as self.contenedor_tabla:
-                    self.tabla = ui.element("table").classes("tabla")
+                    self.tabla = ui.element("div").classes("tabla")
                     self.mensaje_vacio = ui.html(
                         "Sin datos. Selecciona un archivo para empezar.",
                         tag="p",
                         sanitize=False
                     ).classes("vacio")
 
+                #contenedor de los selectores para elegir columnas de entrada y salida.
                 with ui.element("div").classes(
                     "seleccion-columnas formulario"
                 ) as self.contenedor_seleccion:
@@ -157,7 +158,7 @@ class Gui:
         raiz.destroy()
         return ruta
 
-    async def elegir_archivo(self):
+    def elegir_archivo(self):
         """Selecciona un archivo, lo importa y muestra sus datos.
 
         Returns
@@ -188,24 +189,23 @@ class Gui:
         except Exception as e:
             error_str = str(e)
             
-            if "float" in error_str or "replace" in error_str or "attribute" in error_str:
-                return
-
             texto_error = error_str.split(":")[0] if ":" in error_str else error_str
             
             ui.notify(texto_error, type="negative", position="center", timeout=5000)
 
     def mostrar_datos_en_tabla(self):
-        """Muestra las primeras veinte filas del DataFrame en la tabla.
+        """Muestra todos los datos del DataFrame en una tabla con scroll.
 
         Returns
         -------
         None.
         """
+        #!
         if self.df is None:
             return
 
         self.tabla.clear()
+        #!
         if self.df.empty or len(self.df.columns) == 0:
             self._mostrar_mensaje_vacio(
                 "El archivo no contiene datos o columnas para mostrar."
@@ -213,24 +213,15 @@ class Gui:
             self.contenedor_seleccion.set_visibility(False)
             return
 
+        # Tabla con scroll virtual: solo dibuja las filas que se ven.
         with self.tabla:
-            # Construye la cabecera con los nombres de las columnas.
-            with ui.element("thead"):
-                with ui.element("tr"):
-                    for columna in self.df.columns:
-                        ui.html(escape(str(columna)), tag="th", sanitize=False)
+            ui.aggrid.from_pandas(self.df.astype(str).fillna(""),                
+                auto_size_columns=False,
+                options={"autoSizeStrategy": {"type": "fitCellContents"}},).classes("rejilla")
 
-            # Construye las filas con los valores del DataFrame.
-            with ui.element("tbody"):
-                for fila in self.df.astype(str).itertuples(index=False):
-                    with ui.element("tr"):
-                        for valor in fila:
-                            ui.html(escape(valor), tag="td", sanitize=False)
+        self.mensaje_vacio.set_visibility(False)
 
-        if self.mensaje_vacio is not None:
-            self.mensaje_vacio.delete()
-            self.mensaje_vacio = None
-
+    #!
     def _mostrar_mensaje_vacio(self, mensaje):
         """Crea o actualiza el mensaje dentro del contenedor de la tabla."""
         if self.mensaje_vacio is None:
@@ -242,7 +233,7 @@ class Gui:
 
         self.mensaje_vacio.set_content(mensaje)
         self.mensaje_vacio.set_visibility(True)
- 
+
 
     def mostrar_texto(self):
         """Muestra un mensaje según la opción seleccionada y el texto introducido.
