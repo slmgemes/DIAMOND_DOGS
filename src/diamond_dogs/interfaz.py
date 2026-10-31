@@ -112,7 +112,7 @@ class Gui:
                     ).classes("mensaje-seleccion")
                 self.contenedor_seleccion.set_visibility(False)
 
-                #contenedor de separacion
+                #contenedor de separacion de datos
 
                 with ui.element("div").classes(
                     "porcentajes"
@@ -130,7 +130,7 @@ class Gui:
 
                     # Semilla para que la separación sea reproducible.
                     self.entrada_semilla = ui.number(
-                        label="Semilla", value=42, min=0, precision=0
+                        label="Semilla", value=42
                     ).props("outlined").classes("entrada-semilla")
 
                     ui.html(
@@ -144,7 +144,7 @@ class Gui:
 
                     # Cuando cambia el test, el entrenamiento se actualiza solo.
                     self.entrada_train.bind_value_from(
-                        self.entrada_test, "value", backward=lambda v: 100 - v
+                        self.entrada_test, "value", backward=lambda v: 100 - v if v is not None else None,
                     )
 
                 # Resultado de la separación: oculto hasta pulsar "Separar datos".
@@ -380,8 +380,23 @@ class Gui:
         self.resultado_separacion.set_visibility(False)
 
     def separacion_datos(self):
+        """Separa los datos en entrenamiento y test y muestra el resultado.
 
-        self.x_train, self.x_test, self.y_train, self.y_test = separar_datos(self.df,self.features, self.target,self.entrada_test.value ,semilla=self.entrada_semilla.value)
+        Returns
+        -------
+        None.
+        """
+        try:
+            self.x_train, self.x_test, self.y_train, self.y_test = separar_datos(
+                self.df, self.features, self.target,
+                self.entrada_test.value, semilla=self.entrada_semilla.value
+            )
+        except ValueError as e:
+            # Muestra el mensaje de separar_datos y no realiza la separación.
+            self.x_train = self.x_test = self.y_train = self.y_test = None
+            self.resultado_separacion.set_visibility(False)
+            ui.notify(str(e), type="negative", position="center", timeout=5000)
+            return
 
         self.etiqueta_confirmacion.set_content("División realizada correctamente.")
         self.etiqueta_filas.set_content(
@@ -389,7 +404,7 @@ class Gui:
             f"Test: {len(self.x_test)} filas"
         )
         self.resultado_separacion.set_visibility(True)
-        print(self.x_train,self.entrada_semilla)
+
 
         
 
