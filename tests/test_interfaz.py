@@ -1,5 +1,6 @@
 import asyncio
 
+from nicegui import ui
 import pandas as pd
 from nicegui.testing import user_simulation
 
@@ -22,7 +23,7 @@ def test_aviso_vacio_se_elimina_al_cargar_tabla():
                 interfaz.df = pd.DataFrame({"entrada": [1], "salida": [2]})
                 interfaz.mostrar_datos_en_tabla()
 
-            await usuario.should_see(content="entrada")
+            await usuario.should_see(kind=ui.aggrid) 
             await usuario.should_not_see(content="Sin datos. Selecciona un archivo")
 
     asyncio.run(comprobar_renderizado())
