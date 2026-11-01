@@ -267,7 +267,7 @@ class Gui:
         with self.tabla:
             ui.aggrid.from_pandas(self.df.astype(str).fillna(""),                
                 auto_size_columns=False,
-                options={"autoSizeStrategy": {"type": "fitCellContents"}},).classes("rejilla")
+                options={"defaultColDef": {"flex": 1, "minWidth": 200}},).classes("rejilla")
 
         self.mensaje_vacio.set_visibility(False)
 
