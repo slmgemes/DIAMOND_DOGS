@@ -224,65 +224,7 @@ class ImportadorDatos:
             raise ValueError("El archivo cargado no contiene datos (está vacío).")
 
         return (df,ext)
-
-
-
-class ProcesadorDatos:
-    """Clase modular para procesar y validar datos de archivos"""
-
-    def __init__(self, df: pd.DataFrame, extension: str) -> None:
-        self._df = df
-        self._extension = extension
-
-        # Diccionario de manejadores para el procesamiento
-        self._manejadores_procesamiento: dict[str, callable] = {
-            ".csv": self.procesar_csv,
-            ".xlsx": self.procesar_excel,
-            ".xls": self.procesar_excel,
-            ".sqlite": self.procesar_sqlite,
-            ".db": self.procesar_sqlite,
-        }
-
-    @property
-    def df(self) -> pd.DataFrame:
-        return self._df
-
-    @df.setter
-    def df(self, nuevo_df: pd.DataFrame) -> None:
-        self._df = nuevo_df
-
-    @property
-    def extension(self) -> str:
-        return self._extension
-
-    @extension.setter
-    def extension(self, nueva_extension: str) -> None:
-        self._extension = nueva_extension.lower()
-
-    @property
-    def manejadores_procesamiento(self) -> dict[str, callable]:
-        return self._manejadores_procesamiento
-    @manejadores_procesamiento.setter
-    def manejadores_procesamiento(self, nuevos_manejadores: dict[str, callable])-> None:
-        self._manejadores_procesamiento = nuevos_manejadores
-
-    def procesar_csv(self, df: pd.DataFrame) -> pd.DataFrame:
-        pass
-
-    def procesar_excel(self, df: pd.DataFrame) -> pd.DataFrame:
-        pass
-
-    def procesar_sqlite(self, df: pd.DataFrame) -> pd.DataFrame:
-        pass
-
-    def procesar(self) -> pd.DataFrame:
-        """Selecciona el manejador de procesamiento adecuado según la extensión."""
-        if self._df.empty:
-            raise ValueError("No hay datos para procesar (el DataFrame está vacío).")
-        funcion_procesamiento = self.manejadores_procesamiento.get(self._extension)
-        
-        # Ejecuta la función correspondiente pasándole el DataFrame
-        return funcion_procesamiento(self.df)
+    
 
 if __name__ == "__main__":
 

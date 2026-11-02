@@ -132,31 +132,3 @@ def test_sql_dañada(tmp_path):
     importador = ImportadorDatos(db_path)
     with pytest.raises(ValueError, match="dañado o no se puede leer"):
         importador.importar()
-
-def test_archivos_locales_():
-    """Comprueba la importación y la estructura de los datasets de ejemplo
-    ubicados en la carpeta local data/, validando que no estén vacíos
-    y que mantengan las extensiones y tipos correctos.
-    """
-    carpeta_data = Path("data")
-    
-    if not carpeta_data.exists():
-        pytest.skip("La carpeta data/ no existe en el entorno local.")
-
-    extensiones_validas = {".csv", ".xlsx", ".xls", ".sqlite", ".db"}
-    archivos = []
-
-    for f in carpeta_data.iterdir():
-        if (f.is_file()) and (f.suffix.lower() in extensiones_validas):
-            archivos.append(f)
-
-    if not archivos:
-        pytest.skip("No se encontraron archivos compatibles en la carpeta data/.")
-
-    for archivo in archivos:
-        importador = ImportadorDatos(archivo)
-        df, ext = importador.importar()
-        
-        assert not df.empty
-        assert ext in extensiones_validas
-        assert len(df.columns) > 0

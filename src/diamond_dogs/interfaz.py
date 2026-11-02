@@ -4,7 +4,7 @@ from pathlib import Path
 from tkinter import filedialog
 from nicegui import  ui
 from diamond_dogs.importador import ImportadorDatos
-from diamond_dogs.seleccion import REGRESION_MULTIPLE, validar_seleccion
+from diamond_dogs.seleccion import REGRESION_MULTIPLE, validar_seleccion, es_regresion_multiple, obtener_columnas_disponibles
 from diamond_dogs.separacion_datos import separar_datos
 
 class Gui:
@@ -46,7 +46,7 @@ class Gui:
     def __init__(self):
         """Inicializa los atributos y construye los elementos de la interfaz.
 
-        Returns
+        Return  s
         -------
         None.
         """
@@ -161,25 +161,6 @@ class Gui:
                     self.resultado_separacion.set_visibility(False)
 
 
-            # Contenedor de los controles para introducir y mostrar texto.
-            with ui.element("div").classes("formulario"):
-
-                self.desplegable = ui.select(
-                    ["Opción 1", "Opción 2", "Opción 3", "Opción 4", "Opción 5"],
-                    value="Opción 1",
-                ).props('outlined').classes("selector")
-
-                self.entrada_texto = ui.textarea(placeholder="Escribe aquí...")
-                self.entrada_texto.props('outlined input-style="height: 250px; resize: none"')
-                self.entrada_texto.classes("area-texto")
-                self.etiqueta_mensaje = ui.html("", tag="p", sanitize=False).classes("mensaje")
-
-                ui.html(
-                    "Mostrar texto",
-                    tag="button",
-                    sanitize=False
-                ).classes("boton").on("click", self.mostrar_texto)
-
     def elegir_ruta(self):
         """Abre el selector de archivos del sistema.
 
@@ -284,23 +265,6 @@ class Gui:
         self.mensaje_vacio.set_content(mensaje)
         self.mensaje_vacio.set_visibility(True)
 
-    def mostrar_texto(self):
-        """Muestra un mensaje según la opción seleccionada y el texto introducido.
-
-        Returns
-        -------
-        None.
-        """
-        texto = self.entrada_texto.value or ""
-
-        # Si no se introduce texto, muestra la opción seleccionada.
-        if texto.strip() == "":
-            mensaje = f"La opción elegida es: {self.desplegable.value}"
-        else:
-            mensaje = f"Texto ingresado: {texto}"
-
-        self.etiqueta_mensaje.set_content(escape(mensaje))
-
     def _columnas_features(self):
         """Devuelve las features seleccionadas siempre como lista."""
         valor = self.sel_features.value
@@ -339,7 +303,8 @@ class Gui:
         if self.df is None:
             return
         target = self.sel_target.value
-        columnas = [c for c in self.df.columns if c != target]
+
+        columnas = obtener_columnas_disponibles(self.df, target)
         actuales = [c for c in self._columnas_features() if c != target]
         valor = actuales if REGRESION_MULTIPLE else (actuales[0] if actuales else None)
         self.sel_features.set_options(columnas, value=valor)
@@ -358,6 +323,7 @@ class Gui:
         if errores:
             # Una selección inválida invalida también la confirmada antes.
             self.features, self.target = [], None
+            self.es_multiple = False
             self.contenedor_porcentajes.set_visibility(False)
             self.etiqueta_seleccion.set_visibility(False)
             self.resultado_separacion.set_visibility(False)
@@ -368,6 +334,7 @@ class Gui:
             return
 
         self.features, self.target = features, target
+        self.es_multiple = es_regresion_multiple(self.features)
         self.etiqueta_seleccion.set_visibility(True)
         self.etiqueta_seleccion.set_content(
             "<b style='font-size: 22px; '>Selección confirmada</b><br>"
@@ -405,10 +372,6 @@ class Gui:
         )
         self.resultado_separacion.set_visibility(True)
 
-
-        
-
-
 def main():
     """Configura la página principal e inicia la aplicación.
 
@@ -429,7 +392,7 @@ def main():
         Gui()
 
     # Inicia la aplicación NiceGUI.
-    ui.run(reload=False, title="Diamond Dogs")
+    ui.run(reload=False, title="Diamond Dogs", reconnect_timeout=120.0)
 
 
 if __name__ == "__main__":

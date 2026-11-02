@@ -134,8 +134,7 @@ button.boton{
   gap: 16px;
 }
 
-.selector,
-.area-texto {
+.selector {
   width: 700px;
   font-size: 18px;
 }
@@ -143,13 +142,6 @@ button.boton{
   overflow: visible;
 }
 
-.mensaje {
-  width: 700px;
-  max-width: 100%;
-  font-size: 20px;
-  text-align: center;
-  overflow-wrap: anywhere;
-}
 
 .porcentajes {
   display: flex;

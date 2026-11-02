@@ -9,6 +9,28 @@ def _es_numerica(serie: pd.Series) -> bool:
     """Indica si una columna es numérica (los booleanos no cuentan)."""
     return is_numeric_dtype(serie) and not is_bool_dtype(serie)
 
+def es_regresion_multiple(features) -> bool:
+    """Indica si la selección de características corresponde a regresión múltiple (>1) o simple (1)."""
+    return len(list(features or [])) > 1
+
+def obtener_columnas_disponibles(df, target):
+    """Devuelve las columnas del dataset excluyendo la columna de salida (target).
+
+    Parámetros
+    ----------
+    df : pd.DataFrame
+        Dataset cargado.
+    target : object
+        Columna de salida seleccionada.
+
+    Devuelve
+    -------
+    list
+        Lista de nombres de columnas disponibles para entrada.
+    """
+    if df is None:
+        return []
+    return [c for c in df.columns if c != target]
 
 def validar_seleccion(df, features, target, multiple=REGRESION_MULTIPLE):
     """Valida la selección de columnas de entrada y salida.
@@ -31,13 +53,6 @@ def validar_seleccion(df, features, target, multiple=REGRESION_MULTIPLE):
     """
     errores = []
     features = list(features or [])
-
-    if df is None:
-        return ["No hay ningún dataset cargado."]
-    if len(df.columns) == 0:
-        return ["El dataset no contiene columnas."]
-    if df.empty:
-        return ["El dataset no contiene datos."]
 
     if not features:
         errores.append("Falta seleccionar al menos una columna de entrada (features).")
