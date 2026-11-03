@@ -6,6 +6,8 @@ from nicegui import  ui
 from diamond_dogs.importador import ImportadorDatos
 from diamond_dogs.seleccion import REGRESION_MULTIPLE, validar_seleccion, es_regresion_multiple, obtener_columnas_disponibles
 from diamond_dogs.separacion_datos import separar_datos
+from diamond_dogs.preprocesado import identificar_nulos, eliminar_nulos, rellenar_media, rellenar_mediana, rellenar_constante
+
 
 class Gui:
     """Clase para crear la interfaz gráfica de importación y visualización de datos.
@@ -160,6 +162,41 @@ class Gui:
 
                     self.resultado_separacion.set_visibility(False)
 
+                with ui.element("div").classes(
+                    "contenedor-preprocesado"
+                ) as self.contenedor_preprocesado:
+                    ui.html("Tratamiento de valores inexistentes", tag="h3", sanitize=False)
+
+                    self.etiqueta_diagnostico = ui.html("", tag="div", sanitize=False)
+
+                    with ui.element("div") as self.bloque_opciones_nulos:
+                        self.radio_estrategia = ui.radio(
+                            options={
+                                "eliminar": "Eliminar las filas que contengan valores inexistentes",
+                                "media": "Rellenar con la media de cada columna",
+                                "mediana": "Rellenar con la mediana de cada columna",
+                                "constante": "Rellenar con un valor constante"
+                            },
+                            value="eliminar"
+                        ).classes("radio-estrategia")
+
+                        self.entrada_constante = ui.number(
+                            label="Valor constante", value=0
+                        ).props("outlined").classes("entrada-constante")
+                        self.entrada_constante.bind_visibility_from(
+                            self.radio_estrategia, "value", lambda v: v == "constante"
+                        )
+
+                        ui.html(
+                            "Aplicar preprocesado",
+                            tag="button",
+                            sanitize=False
+                        ).classes("boton").on("click", self.aplicar_preprocesado)
+
+                    self.etiqueta_resultado_preprocesado = ui.html("", tag="p", sanitize=False)
+
+                self.contenedor_preprocesado.set_visibility(False)
+
 
     def elegir_ruta(self):
         """Abre el selector de archivos del sistema.
@@ -292,6 +329,7 @@ class Gui:
         self.x_train = self.x_test = self.y_train = self.y_test = None
         self.contenedor_porcentajes.set_visibility(False)
         self.resultado_separacion.set_visibility(False)
+        self.contenedor_preprocesado.set_visibility(False)
 
     def al_cambiar_target(self, _=None):
         """Quita de las features la columna elegida como salida.
@@ -345,6 +383,7 @@ class Gui:
         self.x_train = self.x_test = self.y_train = self.y_test = None
         self.contenedor_porcentajes.set_visibility(True)
         self.resultado_separacion.set_visibility(False)
+        self.contenedor_preprocesado.set_visibility(False)
 
     def separacion_datos(self):
         """Separa los datos en entrenamiento y test y muestra el resultado.
@@ -371,6 +410,98 @@ class Gui:
             f"Test: {len(self.x_test)} filas"
         )
         self.resultado_separacion.set_visibility(True)
+        self.iniciar_preprocesado()
+
+    def iniciar_preprocesado(self):
+        resultado_nulos = identificar_nulos(self.x_train, self.x_test, self.y_train, self.y_test)
+        self.contenedor_preprocesado.set_visibility(True)
+
+        if not resultado_nulos["nulos"]:
+            self.etiqueta_diagnostico.set_content(
+                f"<b style='color: green;'>{escape(resultado_nulos['mensaje'])}</b>"
+            )
+            self.bloque_opciones_nulos.set_visibility(False)
+            self.etiqueta_resultado_preprocesado.set_content("")
+
+        else:
+            x_train = resultado_nulos["nulos_x_train"]
+            x_test = resultado_nulos["nulos_x_test"]
+            y_train = resultado_nulos["nulos_y_train"]
+            y_test = resultado_nulos["nulos_y_test"]
+
+            desglose = "<b>Se han detectado valores inexistentes (NaN):</b><br><ul>"
+            for col, val in x_train.items():
+                if val > 0:
+                    desglose += f"<li>Entrada '{col}' (Train): {val} nulos</li>"
+            for col, val in x_test.items():
+                if val > 0:
+                    desglose += f"<li>Entrada '{col}' (Test): {val} nulos</li>"
+            for col, val in y_train.items():
+                if val > 0:
+                    desglose += f"<li>Salida '{col}' (Train): {val} nulos</li>"
+            for col, val in y_test.items():
+                if val > 0:
+                    desglose += f"<li>Salida '{col}' (Test): {val} nulos</li>"
+            desglose += "</ul>"
+
+            self.etiqueta_diagnostico.set_content(desglose)
+            self.bloque_opciones_nulos.set_visibility(True)
+            self.etiqueta_resultado_preprocesado.set_content("")
+
+    def aplicar_preprocesado(self):
+        estrategia = self.radio_estrategia.value
+        cte = self.entrada_constante.value
+
+        try:
+            if estrategia == "eliminar":
+                self.x_train, self.x_test, self.y_train, self.y_test, resumen = eliminar_nulos(
+                    self.x_train, self.x_test, self.y_train, self.y_test
+                )
+                msg = (
+                    f"Filas eliminadas — Entrenamiento: {resumen['filas_eliminadas_train']}, "
+                    f"Test: {resumen['filas_eliminadas_test']}"
+                )
+            elif estrategia == "media":
+                self.x_train, self.x_test, self.y_train, self.y_test, resumen = rellenar_media(
+                    self.x_train, self.x_test, self.y_train, self.y_test
+                )
+                msg = (
+                    f"Valores rellenados con la media — Total entrenamiento: {resumen['valores_rellenados_train']}, "
+                    f"Total test: {resumen['valores_rellenados_test']}"
+                )
+            elif estrategia == "mediana":
+                self.x_train, self.x_test, self.y_train, self.y_test, resumen = rellenar_mediana(
+                    self.x_train, self.x_test, self.y_train, self.y_test
+                )
+                msg = (
+                    f"Valores rellenados con la mediana — Total entrenamiento: {resumen['valores_rellenados_train']}, "
+                    f"Total test: {resumen['valores_rellenados_test']}"
+                )
+            elif estrategia == "constante":
+                self.x_train, self.x_test, self.y_train, self.y_test, resumen = rellenar_constante(
+                    self.x_train, self.x_test, self.y_train, self.y_test, cte
+                )
+                msg = (
+                    f"Valores rellenados con constante ({cte}) — Total entrenamiento: {resumen['valores_rellenados_train']}, "
+                    f"Total test: {resumen['valores_rellenados_test']}"
+                )
+            else:
+                return
+
+            self.etiqueta_resultado_preprocesado.set_content(f"<b>{msg}</b>")
+            resultado_nulos = identificar_nulos(self.x_train, self.x_test, self.y_train, self.y_test)
+            if not resultado_nulos["nulos"]:
+                self.etiqueta_diagnostico.set_content(
+                    "<b>¡Ya no quedan valores inexistentes (NaN) en los datasets!</b>"
+                )
+            else:
+                self.etiqueta_diagnostico.set_content(f"<b>{escape(resultado_nulos['mensaje'])}</b>")
+
+            self.bloque_opciones_nulos.set_visibility(True)
+
+        except ValueError as e:
+            ui.notify(str(e), type="negative", position="center", timeout=5000)
+    
 
 def main():
     """Configura la página principal e inicia la aplicación.

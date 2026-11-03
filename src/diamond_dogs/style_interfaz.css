@@ -126,7 +126,7 @@ button.boton{
   --ag-font-size: 18px !important;
 }
 
-/* ---------- otros ---------- */
+/* ---------- Selección ---------- */
 .formulario {
   display: flex;
   flex-direction: column;
@@ -142,6 +142,7 @@ button.boton{
   overflow: visible;
 }
 
+/* ---------- Separación de Datos ---------- */
 
 .porcentajes {
   display: flex;
@@ -208,4 +209,41 @@ button.boton{
 
 .mensaje-seleccion:empty {
     display: none;
+}
+
+/* ---------- Preprocesado ---------- */
+.contenedor-preprocesado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 700px;
+  padding: 20px;
+  background: #fbf6e9;
+  border: 1px solid #c9b48a;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.contenedor-preprocesado h3 {
+  color: #7a2e2e;
+  font-size: 24px;
+  margin: 0;
+  text-align: center;
+}
+
+.radio-estrategia {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  --q-primary: #7a2e2e;
+  text-align: left;
+}
+
+.entrada-constante {
+  width: 300px;
+  font-size: 18px;
+  margin-bottom: 16px;
+  --q-primary: #7a2e2e;
 }
