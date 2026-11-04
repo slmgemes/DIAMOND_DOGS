@@ -397,6 +397,9 @@ class Gui:
                 self.df, self.features, self.target,
                 self.entrada_test.value, semilla=self.entrada_semilla.value
             )
+
+            self.x_train_base = None
+
         except ValueError as e:
             # Muestra el mensaje de separar_datos y no realiza la separación.
             self.x_train = self.x_test = self.y_train = self.y_test = None
@@ -453,9 +456,20 @@ class Gui:
         cte = self.entrada_constante.value
 
         try:
+            if not hasattr(self, 'x_train_base') or self.x_train_base is None:
+                self.x_train_base = self.x_train.copy()
+                self.x_test_base = self.x_test.copy()
+                self.y_train_base = self.y_train.copy()
+                self.y_test_base = self.y_test.copy()
+
+            xt_input = self.x_train_base.copy()
+            xte_input = self.x_test_base.copy()
+            yt_input = self.y_train_base.copy()
+            yte_input = self.y_test_base.copy()
+            
             if estrategia == "eliminar":
                 self.x_train, self.x_test, self.y_train, self.y_test, resumen = eliminar_nulos(
-                    self.x_train, self.x_test, self.y_train, self.y_test
+                    xt_input, xte_input, yt_input, yte_input
                 )
                 msg = (
                     f"Filas eliminadas — Entrenamiento: {resumen['filas_eliminadas_train']}, "
@@ -463,7 +477,7 @@ class Gui:
                 )
             elif estrategia == "media":
                 self.x_train, self.x_test, self.y_train, self.y_test, resumen = rellenar_media(
-                    self.x_train, self.x_test, self.y_train, self.y_test
+                    xt_input, xte_input, yt_input, yte_input
                 )
                 msg = (
                     f"Valores rellenados con la media — Total entrenamiento: {resumen['valores_rellenados_train']}, "
@@ -471,7 +485,7 @@ class Gui:
                 )
             elif estrategia == "mediana":
                 self.x_train, self.x_test, self.y_train, self.y_test, resumen = rellenar_mediana(
-                    self.x_train, self.x_test, self.y_train, self.y_test
+                    xt_input, xte_input, yt_input, yte_input
                 )
                 msg = (
                     f"Valores rellenados con la mediana — Total entrenamiento: {resumen['valores_rellenados_train']}, "
@@ -479,7 +493,7 @@ class Gui:
                 )
             elif estrategia == "constante":
                 self.x_train, self.x_test, self.y_train, self.y_test, resumen = rellenar_constante(
-                    self.x_train, self.x_test, self.y_train, self.y_test, cte
+                    xt_input, xte_input, yt_input, yte_input, cte
                 )
                 msg = (
                     f"Valores rellenados con constante ({cte}) — Total entrenamiento: {resumen['valores_rellenados_train']}, "
