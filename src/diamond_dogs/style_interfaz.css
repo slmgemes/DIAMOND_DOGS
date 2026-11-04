@@ -3,6 +3,8 @@ body {
   color: #3b2f2f;
   font-family: "Times New Roman", Times, serif;
   font-size: 18px;
+  margin: 0;
+  padding: 0;
 }
 
 .q-field--float .q-field__label {
@@ -19,82 +21,104 @@ body {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  gap: 40px;
-  padding: 40px 0;
+  max-width: 1100px;
+  margin: 0 auto;
+  gap: 30px;
+  padding: 40px 20px;
 }
 
 .titulo {
   font-size: 85px;
   font-weight: 700;
   color: #7a2e2e;
-  letter-spacing: 0;
+  letter-spacing: -1px;
   line-height: 1.1;
   text-align: center;
+  margin-bottom: 10px;
+  border-bottom: 3px solid #c9b48a;
+  padding-bottom: 15px;
+  width: 100%;
 }
+/* ---------- Tarjeta genérica estilo Panel ---------- */
 
-/* ---------- Importar ---------- */
-.importar {
+.importar,
+.formulario,
+.porcentajes,
+.resultado-separacion,
+.contenedor-preprocesado {
+  background: #fbf6e9;
+  border: 1px solid #d9c49a;
+  border-radius: 12px;
+  padding: 24px;
+  width: 100%;
+  max-width: 800px;
+  box-shadow: 0 4px 12px rgba(59, 47, 47, 0.05);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 20px;
 }
 
+/* ---------- Importar ---------- */
+
 .fila-archivo {
   display: flex;
   align-items: center;
-  justify-content: space-around;
+  justify-content: space-between;
   gap: 20px;
   width: 700px;
 }
 
-.boton{
-  width: 300px;
-  height: 50px;
+.boton, button.boton {
+  width: 240px;
+  height: 48px;
   background: #7a2e2e;
   color: #fbf6e9;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 18px;
+  font-weight: bold;  
   cursor: pointer;
   transition: 0.2s;
-}
-
-button.boton{
-  width: 300px;
-  height: 50px;
-  background: #7a2e2e;
-  color: #fbf6e9;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: 0.2s;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .boton:hover {
   background: #5c1f1f;
-  scale: 0.97;
+  transform: translateY(-1px);
+}
+
+.boton:active {
+  transform: translateY(1px);
 }
 
 .ruta {
-  min-width: 300px;
-  min-height: 50px;
-  padding: 10px;
-  text-align: center;
+  flex-grow: 1;
+  min-height: 48px;
+  padding: 12px 16px;
+  text-align: left;
   overflow-wrap: anywhere;
-  background: #fbf6e9;
+  background: #f4ecd8;
   border: 1px solid #c9b48a;
-  border-radius: 10px;
+  border-radius: 8px;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  color: #5c4a4a;
 }
 
 /* ---------- Tabla ---------- */
 .contenedor-tabla {
   position: relative;
-  width: 75vw;
-  height: 300px;
-  overflow: hidden; /* el scroll lo hace AG Grid */
+  width: 100%;
+  max-width: 850px;
+  height: 350px;
+  overflow: hidden;
   background: #fbf6e9;
-  border: 1px solid #c9b48a;
-  border-radius: 8px;
+  border: 1px solid #d9c49a;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(59, 47, 47, 0.05);
 }
 
 .vacio {
@@ -104,7 +128,7 @@ button.boton{
   transform: translate(-50%, -50%);
   white-space: nowrap;
   color: #8a7a62;
-  font-size: 28px;
+  font-size: 22px;
 }
 
 .tabla {
@@ -118,89 +142,81 @@ button.boton{
   /* Colores de AG Grid */
   --ag-background-color: #fbf6e9;
   --ag-foreground-color: #3b2f2f;
-  --ag-header-background-color: #b8893b;
+  --ag-header-background-color: #7a2e2e;
   --ag-header-text-color: #fbf6e9;
-  --ag-border-color: #c9b48a;
+  --ag-border-color: #e6d7b8;
   --ag-row-hover-color: #f4ecd8;
   --ag-font-family: "Times New Roman", Times, serif;
-  --ag-font-size: 18px !important;
+  --ag-font-size: 17px !important;
 }
 
 /* ---------- Selección ---------- */
-.formulario {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
 .selector {
-  width: 700px;
+  width: 100%;
+  max-width: 700px;
+  --q-primary: #7a2e2e;
   font-size: 18px;
 }
+
 .selector .q-field__native span {
   overflow: visible;
 }
 
+.selector {
+  width: 100%;
+  max-width: 700px;
+  --q-primary: #7a2e2e;
+  font-size: 18px;
+}
+
+.selector .q-field__native span {
+  overflow: visible;
+}
 /* ---------- Separación de Datos ---------- */
 
-.porcentajes {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
 .entrada-test,
-.entrada-train {
-    width: 300px;
+.entrada-train,
+.entrada-semilla,
+.entrada-constante {
+    width: 100%;
+    max-width: 400px;
     --q-primary: #7a2e2e;
     font-size: 18px;
-}
-.selector {
-    width: 700px;
-    --q-primary: #7a2e2e;
-    font-size: 18px;
-}
-.entrada-semilla {
-  width: 300px;
-  font-size: 18px;
-  --q-primary: #7a2e2e;
 }
 
 .resultado-separacion {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    width: 700px;
-    padding: 12px;
-    background: #fbf6e9;
+    background: #f4ecd8;
     border: 1px solid #c9b48a;
-    border-radius: 10px;
+    width: 100%;
+    max-width: 800px;
+    padding: 16px;
+    gap: 8px;
 }
 
 .mensaje-confirmacion {
     color: #7a2e2e;
     font-weight: 700;
     text-align: center;
-    font-size: 22px;
+    font-size: 20px;
+    margin: 0;
 }
 
 .mensaje-filas {
     text-align: center;
-    font-size: 18px;
+    font-size: 17px;
+    margin: 0;
 }
 
 .mensaje-seleccion {
-    width: 700px;
-    padding: 12px;
-    text-align: center;
+    width: 100%;
+    max-width: 700px;
+    padding: 16px;
+    text-align: left;
     overflow-wrap: anywhere;
     font-family: "Times New Roman", Times, serif;
-    background: #fbf6e9;
+    background: #f4ecd8;
     border: 1px solid #c9b48a;
-    border-radius: 10px;
+    border-radius: 8px;
 }
 
 .mensaje-seleccion b {
@@ -213,25 +229,31 @@ button.boton{
 
 /* ---------- Preprocesado ---------- */
 .contenedor-preprocesado {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  width: 700px;
-  padding: 20px;
-  background: #fbf6e9;
-  border: 1px solid #c9b48a;
-  border-radius: 10px;
   text-align: center;
 }
 
 .contenedor-preprocesado h3 {
   color: #7a2e2e;
   font-size: 24px;
-  margin: 0;
-  text-align: center;
+  margin: 0 0 10px 0;
+  border-bottom: 2px solid #d9c49a;
+  padding-bottom: 8px;
+  width: 100%;
 }
 
+.radio-estrategia {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 700px;
+  --q-primary: #7a2e2e;
+  text-align: left;
+  background: #f4ecd8;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e6d7b8;
+}
 .radio-estrategia {
   display: flex;
   flex-direction: column;
