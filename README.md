@@ -40,16 +40,20 @@ INSTALAR ENTORNO
 
     uv run python .\src\diamond_dogs\interfaz.py 
 
-VERIFICACIÓN MANUAL DEL FLUJO
+EJECUTAR APLICACIÓN
 
-1. Ejecuta la aplicación ejecutando en la terminal:
+1. Instala el entorno escribiendo en la terminal:
+    
+    uv sync
+
+2. Ejecuta la aplicación ejecutando en la terminal:
 
     uv run python .\src\diamond_dogs\interfaz.py 
 
-2. Interactúa con el botón de selección de archivos para cargar un dataset.
+3. Interactúa con el botón de selección de archivos para cargar un dataset.
 
-3. Selecciona las columnas de entrada y salida correspondientes y confirma la selección.
+4. Selecciona las columnas de entrada y salida correspondientes y confirma la selección.
 
-4. Introduce el porcentaje de test deseado junto con la semilla y pulsa separar datos.
+5. Introduce el porcentaje de test deseado junto con la semilla y pulsa separar datos.
 
-5. En el bloque de tratamiento de valores inexistentes, escoge una estrategia de preprocesado y aplícala; el sistema permite reintentar y cambiar de opción cuantas veces sea necesario partiendo siempre de los datos originales intactos.
+6. En el bloque de tratamiento de valores inexistentes, escoge una estrategia de preprocesado y aplícala; el sistema permite reintentar y cambiar de opción cuantas veces sea necesario partiendo siempre de los datos originales intactos.
