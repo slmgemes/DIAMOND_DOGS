@@ -151,3 +151,54 @@ tipo: descripción breve en presente o imperativo
     se debe actualizar la rama con los últimos cambios de dev 
     y ejecutar todas las pruebas en local mediante uv run pytest. 
     La fusión solo se autoriza si el 100 % de los tests se ejecutan con éxito.
+
+## 7. PROCEDIMIENTO DE RELEASE
+
+Para publicar una nueva versión del proyecto, se debe seguir estrictamente este procedimiento en orden:
+
+### 1. Asegurarse de que todas las pruebas automatizadas pasan correctamente en la rama `dev`:
+
+    ```bash
+    uv run pytest
+    ```
+### 2. Situarse en la rama dev y actualizarla con el repositorio remoto:
+
+    ```bash
+    git checkout dev
+    git pull origin dev
+    ```
+### 3. Comprobar que el campo version del archivo pyproject.toml refleja exactamente la versión que se va a publicar:
+
+    Si no es así, corregirlo en una rama de trabajo y fusionarlo antes de continuar.
+
+### 4. Fusión de dev en main y subida al repositorio:
+
+    ```bash
+    git checkout main
+    git pull origin main
+    git merge dev
+    git push origin main
+    ```
+### 5. Creación y subida de la etiqueta (Tag) (Por ejemplo la versión 0.1.0):
+
+    ```bash
+    git tag -a v0.1.0 -m "Versión 0.1.0"
+    git push origin v0.1.0
+    ```
+### 6. Creación de la Release en GitHub:
+
+    -Acceder a la sección Releases del repositorio en GitHub.
+    -Hacer clic en Draft a new release y seleccionar la etiqueta recién subida.
+    -Indicar como título de la release el nombre de la versión.
+    -Redactar las notas de la release incluyendo:
+        Una descripción breve de la aplicación y el estado actual del proyecto.
+        Las funcionalidades incluidas (agrupadas a partir de los commits feat) y las correcciones (fix).
+        Las funcionalidades pendientes para próximas versiones (como la persistencia de modelos y predicciones).
+        Un enlace directo al README.md de la versión publicada (ej. https://github.com/slmgemes/DIAMOND_DOGS/blob/v0.1.0/README.md).
+    -Marcar la casilla Set as a pre-release en caso de que aún se encuentre en fase de desarrollo.
+    -Publicar la Release haciendo clic en el botón Publish release.
+  
+  ### 7. Comprobación de la descarga del código fuente:
+    -Descargar el archivo comprimido del código fuente.
+    -Descomprimirlo en una carpeta nueva y limpia en el equipo local.
+    -Comprobar que funciona siguiendo los pasos descritos en el README.md.
