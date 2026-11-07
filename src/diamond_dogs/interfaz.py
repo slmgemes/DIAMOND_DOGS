@@ -7,7 +7,7 @@ from diamond_dogs.importador import ImportadorDatos
 from diamond_dogs.seleccion import REGRESION_MULTIPLE, validar_seleccion, es_regresion_multiple, obtener_columnas_disponibles
 from diamond_dogs.separacion_datos import separar_datos
 from diamond_dogs.preprocesado import identificar_nulos, eliminar_nulos, rellenar_media, rellenar_mediana, rellenar_constante
-
+from diamond_dogs.crear_modelo import entrenar_modelo, calcular_metricas, escribir_formula
 
 class Gui:
     """Clase para crear la interfaz gráfica de importación y visualización de datos.
@@ -55,6 +55,7 @@ class Gui:
         self.ruta = ""
         self.df = None
         self.ext = ""
+        self.modelo = None
 
         # Contenedor principal de la aplicación.
         with ui.element("div").classes("app"):
@@ -199,12 +200,23 @@ class Gui:
 
                     self.contenedor_preprocesado.set_visibility(False)
 
-                    #contenedor del modelo de regresion lineal
+                    
 
+                # Contenedor del modelo: oculto hasta que se pueda crear.
                 with ui.element("div").classes("contenedor-modelo") as self.contenedor_modelo:
-                    ui.html("Crear modelo",tag="button",sanitize=False
-                            ).classes("boton").on("click", self.crear_modelo)
-                    self.contenedor_modelo.set_visibility(False)
+                    ui.html(
+                        "Crear modelo",
+                        tag="button",
+                        sanitize=False
+                    ).classes("boton").on("click", self.crear_modelo)
+
+                    # Resultados del modelo: ocultos hasta crearlo.
+                    with ui.element("div").classes("resultado-modelo") as self.resultado_modelo:
+                        self.etiqueta_modelo = ui.html("Modelo creado correctamente.", tag="p", sanitize=False).classes("mensaje-confirmacion")
+                        self.etiqueta_formula = ui.html("", tag="p", sanitize=False).classes("formula-modelo")
+                        self.tabla_metricas = ui.html("", tag="div", sanitize=False).classes("tabla-metricas")
+                    self.resultado_modelo.set_visibility(False)
+                self.contenedor_modelo.set_visibility(False)
 
 
 
@@ -341,7 +353,7 @@ class Gui:
         self.contenedor_porcentajes.set_visibility(False)
         self.resultado_separacion.set_visibility(False)
         self.contenedor_preprocesado.set_visibility(False)
-        self.contenedor_modelo.set_visibility(False)
+        self.ocultar_modelo()
 
     def al_cambiar_target(self, _=None):
         """Quita de las features la columna elegida como salida.
@@ -374,10 +386,12 @@ class Gui:
             # Una selección inválida invalida también la confirmada antes.
             self.features, self.target = [], None
             self.es_multiple = False
+            self.x_train = self.x_test = self.y_train = self.y_test = None
             self.contenedor_porcentajes.set_visibility(False)
             self.etiqueta_seleccion.set_visibility(False)
             self.resultado_separacion.set_visibility(False)
-            self.contenedor_modelo.set_visibility(False)
+            self.contenedor_preprocesado.set_visibility(False)   
+            self.ocultar_modelo()
             ui.notify(
                 "\n".join(errores), type="negative", position="center",
                 timeout=5000, multi_line=True,
@@ -397,7 +411,7 @@ class Gui:
         self.contenedor_porcentajes.set_visibility(True)
         self.resultado_separacion.set_visibility(False)
         self.contenedor_preprocesado.set_visibility(False)
-        self.contenedor_modelo.set_visibility(False)
+        self.ocultar_modelo()
 
     def separacion_datos(self):
         """Separa los datos en entrenamiento y test y muestra el resultado.
@@ -417,9 +431,11 @@ class Gui:
         except ValueError as e:
             # Muestra el mensaje de separar_datos y no realiza la separación.
             self.x_train = self.x_test = self.y_train = self.y_test = None
+            self.x_train_base = None       
             self.resultado_separacion.set_visibility(False)
+            self.contenedor_preprocesado.set_visibility(False)  
             ui.notify(str(e), type="negative", position="center", timeout=5000)
-            self.contenedor_modelo.set_visibility(False)
+            self.ocultar_modelo()
             return
 
         self.etiqueta_confirmacion.set_content("División realizada correctamente.")
@@ -440,7 +456,7 @@ class Gui:
             )
             self.bloque_opciones_nulos.set_visibility(False)
             self.etiqueta_resultado_preprocesado.set_content("")
-            self.contenedor_modelo.set_visibility(True)
+            self.mostrar_boton_modelo()
         else:
             x_train = resultado_nulos["nulos_x_train"]
             x_test = resultado_nulos["nulos_x_test"]
@@ -465,7 +481,7 @@ class Gui:
             self.etiqueta_diagnostico.set_content(desglose)
             self.bloque_opciones_nulos.set_visibility(True)
             self.etiqueta_resultado_preprocesado.set_content("")
-            self.contenedor_modelo.set_visibility(False)
+            self.ocultar_modelo()
 
     def aplicar_preprocesado(self):
         estrategia = self.radio_estrategia.value
@@ -524,25 +540,69 @@ class Gui:
                 self.etiqueta_diagnostico.set_content(
                     "<b>¡Ya no quedan valores inexistentes (NaN) en los datasets!</b>"
                 )
-                self.contenedor_modelo.set_visibility(True)
+                self.mostrar_boton_modelo()
             else:
                 self.etiqueta_diagnostico.set_content(f"<b>{escape(resultado_nulos['mensaje'])}</b>")
-                self.contenedor_modelo.set_visibility(False)
+                self.ocultar_modelo()
 
             self.bloque_opciones_nulos.set_visibility(True)
 
-        except ValueError as e:
+        except (ValueError,TypeError) as e:
             ui.notify(str(e), type="negative", position="center", timeout=5000)
 
     def crear_modelo(self):
-        """Crea el modelo de regresión lineal (pendiente de implementar).
+        """Crea el modelo y muestra su fórmula y sus métricas.
 
         Returns
         -------
         None.
         """
-        ui.notify("Botón pulsado: aquí se creará el modelo", position="center")
+        try:
+            self.modelo = entrenar_modelo(self.x_train, self.y_train)
+            metricas = calcular_metricas(
+                self.modelo, self.x_train, self.x_test, self.y_train, self.y_test
+            )
+            formula = escribir_formula(self.target, self.features, self.modelo)
+        except Exception as e:
+            # Cualquier error: se avisa y la aplicación sigue funcionando.
+            self.modelo = None
+            self.resultado_modelo.set_visibility(False)
+            ui.notify(f"No se pudo crear el modelo: {e}", type="negative",
+                    position="center", timeout=5000)
+            return
 
+        self.etiqueta_formula.set_content(escape(formula))
+        self.tabla_metricas.set_content(
+            "<table>"
+            "<tr><th>Métrica</th><th>Entrenamiento</th><th>Test</th></tr>"
+            f"<tr><td>R<sup>2</sup></td><td>{metricas['r2_train']:.4f}</td>"
+            f"<td>{metricas['r2_test']:.4f}</td></tr>"
+            f"<tr><td>ECM</td><td>{metricas['ecm_train']:,.2f}</td>"
+            f"<td>{metricas['ecm_test']:,.2f}</td></tr>"
+            "</table>"
+        )
+        self.resultado_modelo.set_visibility(True)
+
+    def ocultar_modelo(self):
+        """Oculta el botón y borra el modelo anterior.
+
+        Returns
+        -------
+        None.
+        """
+        self.modelo = None
+        self.resultado_modelo.set_visibility(False)
+        self.contenedor_modelo.set_visibility(False)
+
+    def mostrar_boton_modelo(self):
+        """Muestra el botón para crear un modelo nuevo, sin resultados anteriores.
+
+        Returns
+        -------
+        None.
+        """
+        self.ocultar_modelo()
+        self.contenedor_modelo.set_visibility(True)
     
 
 def main():

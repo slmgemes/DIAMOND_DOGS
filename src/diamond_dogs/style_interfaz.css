@@ -1,3 +1,4 @@
+/* ---------- Base ---------- */
 body {
   background: #f4ecd8;
   color: #3b2f2f;
@@ -7,15 +8,17 @@ body {
   padding: 0;
 }
 
+/* Etiquetas de los campos (desplegables y entradas numéricas). */
 .q-field--float .q-field__label {
-    transform: translateY(-50%) scale(0.75);
+  transform: translateY(-50%) scale(0.75);
 }
 
-.q-field__label{
-    font-size: 20px;
-    top: 15px !important;
+.q-field__label {
+  font-size: 20px;
+  top: 15px !important;
 }
 
+/* ---------- Estructura ---------- */
 .app {
   display: flex;
   flex-direction: column;
@@ -39,13 +42,13 @@ body {
   padding-bottom: 15px;
   width: 100%;
 }
-/* ---------- Tarjeta genérica estilo Panel ---------- */
 
+/* ---------- Bloques (tarjetas) ---------- */
 .importar,
 .formulario,
 .porcentajes,
-.resultado-separacion,
-.contenedor-preprocesado {
+.contenedor-preprocesado,
+.contenedor-modelo {
   background: #fbf6e9;
   border: 1px solid #d9c49a;
   border-radius: 12px;
@@ -59,17 +62,25 @@ body {
   gap: 20px;
 }
 
-/* ---------- Importar ---------- */
-
-.fila-archivo {
+/* Bloques de resultado: mismo formato, con otro color que el bloque padre. */
+.resultado-separacion,
+.resultado-modelo {
+  background: #f4ecd8;
+  border: 1px solid #c9b48a;
+  border-radius: 12px;
+  padding: 16px;
+  width: 100%;
+  max-width: 800px;
+  box-shadow: 0 4px 12px rgba(59, 47, 47, 0.05);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  width: 700px;
+  gap: 8px;
 }
 
-.boton, button.boton {
+/* ---------- Botones ---------- */
+.boton,
+button.boton {
   width: 240px;
   height: 48px;
   background: #7a2e2e;
@@ -78,10 +89,10 @@ body {
   border-radius: 8px;
   font-family: "Times New Roman", Times, serif;
   font-size: 18px;
-  font-weight: bold;  
+  font-weight: bold;
   cursor: pointer;
   transition: 0.2s;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .boton:hover {
@@ -91,6 +102,15 @@ body {
 
 .boton:active {
   transform: translateY(1px);
+}
+
+/* ---------- Importar ---------- */
+.fila-archivo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 700px;
 }
 
 .ruta {
@@ -162,69 +182,49 @@ body {
   overflow: visible;
 }
 
-.selector {
+.mensaje-seleccion {
   width: 100%;
   max-width: 700px;
-  --q-primary: #7a2e2e;
-  font-size: 18px;
+  padding: 16px;
+  text-align: center;
+  overflow-wrap: anywhere;
+  font-family: "Times New Roman", Times, serif;
+  background: #f4ecd8;
+  border: 1px solid #c9b48a;
+  border-radius: 8px;
 }
 
-.selector .q-field__native span {
-  overflow: visible;
+.mensaje-seleccion b {
+  color: #7a2e2e;
 }
-/* ---------- Separación de Datos ---------- */
 
+.mensaje-seleccion:empty {
+  display: none;
+}
+
+/* ---------- Separación de datos ---------- */
 .entrada-test,
 .entrada-train,
 .entrada-semilla,
 .entrada-constante {
-    width: 100%;
-    max-width: 400px;
-    --q-primary: #7a2e2e;
-    font-size: 18px;
-}
-
-.resultado-separacion {
-    background: #f4ecd8;
-    border: 1px solid #c9b48a;
-    width: 100%;
-    max-width: 800px;
-    padding: 16px;
-    gap: 8px;
+  width: 100%;
+  max-width: 400px;
+  --q-primary: #7a2e2e;
+  font-size: 18px;
 }
 
 .mensaje-confirmacion {
-    color: #7a2e2e;
-    font-weight: 700;
-    text-align: center;
-    font-size: 20px;
-    margin: 0;
+  color: #7a2e2e;
+  font-weight: 700;
+  text-align: center;
+  font-size: 20px;
+  margin: 0;
 }
 
 .mensaje-filas {
-    text-align: center;
-    font-size: 17px;
-    margin: 0;
-}
-
-.mensaje-seleccion {
-    width: 100%;
-    max-width: 700px;
-    padding: 16px;
-    text-align: center;
-    overflow-wrap: anywhere;
-    font-family: "Times New Roman", Times, serif;
-    background: #f4ecd8;
-    border: 1px solid #c9b48a;
-    border-radius: 8px;
-}
-
-.mensaje-seleccion b {
-    color: #7a2e2e;
-}
-
-.mensaje-seleccion:empty {
-    display: none;
+  text-align: center;
+  font-size: 17px;
+  margin: 0;
 }
 
 /* ---------- Preprocesado ---------- */
@@ -244,7 +244,7 @@ body {
 .radio-estrategia {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   max-width: 700px;
   --q-primary: #7a2e2e;
@@ -254,26 +254,34 @@ body {
   border-radius: 8px;
   border: 1px solid #e6d7b8;
 }
-.radio-estrategia {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-  --q-primary: #7a2e2e;
-  text-align: left;
-}
 
 .entrada-constante {
   width: 300px;
-  font-size: 18px;
   margin-bottom: 16px;
-  --q-primary: #7a2e2e;
 }
-.bloque-opciones-nulos{
+
+.bloque-opciones-nulos {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 20px;
   width: 100%;
   max-width: 700px;
+}
+
+/* ---------- Modelo ---------- */
+.tabla-metricas table {
+  border-collapse: collapse;
+}
+
+.tabla-metricas th,
+.tabla-metricas td {
+  border: 1px solid #c9b48a;
+  padding: 8px 16px;
+  text-align: center;
+}
+
+.tabla-metricas th {
+  background: #7a2e2e;
+  color: #fbf6e9;
 }
