@@ -57,7 +57,7 @@ def calcular_metricas(modelo:LinearRegression, x_train, x_test, y_train, y_test)
 def escribir_formula(salida, entradas, modelo:LinearRegression):
     """Escribe la fórmula del modelo con los nombres de las columnas.
 
-    Los números se muestran siempre con 2 decimales, y los negativos restando.
+    Los números se muestran siempre con 4 decimales, y los negativos restando.
 
     Parameters
     ----------
