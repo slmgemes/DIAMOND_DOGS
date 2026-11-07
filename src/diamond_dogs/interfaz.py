@@ -7,7 +7,8 @@ from diamond_dogs.importador import ImportadorDatos
 from diamond_dogs.seleccion import REGRESION_MULTIPLE, validar_seleccion, es_regresion_multiple, obtener_columnas_disponibles
 from diamond_dogs.separacion_datos import separar_datos
 from diamond_dogs.preprocesado import identificar_nulos, eliminar_nulos, rellenar_media, rellenar_mediana, rellenar_constante
-from diamond_dogs.crear_modelo import entrenar_modelo, calcular_metricas, escribir_formula
+from diamond_dogs.crear_modelo import entrenar_modelo, calcular_metricas, escribir_formula,datos_grafico
+import matplotlib.pyplot as plt
 
 class Gui:
     """Clase para crear la interfaz gráfica de importación y visualización de datos.
@@ -215,6 +216,7 @@ class Gui:
                         self.etiqueta_modelo = ui.html("Modelo creado correctamente.", tag="p", sanitize=False).classes("mensaje-confirmacion")
                         self.etiqueta_formula = ui.html("", tag="p", sanitize=False).classes("formula-modelo")
                         self.tabla_metricas = ui.html("", tag="div", sanitize=False).classes("tabla-metricas")
+                        self.contenedor_grafico = ui.element("div").classes("grafico-modelo")
                     self.resultado_modelo.set_visibility(False)
                 self.contenedor_modelo.set_visibility(False)
 
@@ -563,6 +565,9 @@ class Gui:
                 self.modelo, self.x_train, self.x_test, self.y_train, self.y_test
             )
             formula = escribir_formula(self.target, self.features, self.modelo)
+            datos= datos_grafico(
+                self.modelo, self.x_train, self.x_test, self.y_train, self.y_test
+            )
         except Exception as e:
             # Cualquier error: se avisa y la aplicación sigue funcionando.
             self.modelo = None
@@ -581,6 +586,20 @@ class Gui:
             f"<td>{metricas['ecm_test']:,.2f}</td></tr>"
             "</table>"
         )
+
+        self.contenedor_grafico.clear()
+        with self.contenedor_grafico:
+            with ui.pyplot(figsize=(8, 5)).classes("grafico"):
+                plt.scatter(datos["x_train"], datos["y_train"], s=4, color="#b8893b",
+                            label="Entrenamiento", rasterized=True)
+                plt.scatter(datos["x_test"], datos["y_test"], s=6, color="#7a2e2e",
+                            marker="^", label="Test", rasterized=True)
+                plt.plot(datos["linea_x"], datos["linea_y"], color="#3b2f2f",
+                         linewidth=2, label=datos["nombre_linea"])
+                plt.xlabel(datos["eje_x"])
+                plt.ylabel(datos["eje_y"])
+                plt.legend()
+
         self.resultado_modelo.set_visibility(True)
 
     def ocultar_modelo(self):

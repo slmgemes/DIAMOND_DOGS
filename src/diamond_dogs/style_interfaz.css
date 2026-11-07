@@ -285,3 +285,11 @@ button.boton {
   background: #7a2e2e;
   color: #fbf6e9;
 }
+.grafico-modelo {
+  width: 100%;
+}
+
+.grafico svg {
+  width: 100%;
+  height: auto;
+}
