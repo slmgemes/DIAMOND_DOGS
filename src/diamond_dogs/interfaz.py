@@ -162,6 +162,8 @@ class Gui:
 
                     self.resultado_separacion.set_visibility(False)
 
+                # Contenedor de preprocesado.
+
                 with ui.element("div").classes(
                     "contenedor-preprocesado"
                 ) as self.contenedor_preprocesado:
@@ -169,7 +171,7 @@ class Gui:
 
                     self.etiqueta_diagnostico = ui.html("", tag="div", sanitize=False)
 
-                    with ui.element("div") as self.bloque_opciones_nulos:
+                    with ui.element("div").classes("bloque-opciones-nulos") as self.bloque_opciones_nulos:
                         self.radio_estrategia = ui.radio(
                             options={
                                 "eliminar": "Eliminar las filas que contengan valores inexistentes",
@@ -195,7 +197,16 @@ class Gui:
 
                     self.etiqueta_resultado_preprocesado = ui.html("", tag="p", sanitize=False)
 
-                self.contenedor_preprocesado.set_visibility(False)
+                    self.contenedor_preprocesado.set_visibility(False)
+
+                    #contenedor del modelo de regresion lineal
+
+                with ui.element("div").classes("contenedor-modelo") as self.contenedor_modelo:
+                    ui.html("Crear modelo",tag="button",sanitize=False
+                            ).classes("boton").on("click", self.crear_modelo)
+                    self.contenedor_modelo.set_visibility(False)
+
+
 
 
     def elegir_ruta(self):
@@ -330,6 +341,7 @@ class Gui:
         self.contenedor_porcentajes.set_visibility(False)
         self.resultado_separacion.set_visibility(False)
         self.contenedor_preprocesado.set_visibility(False)
+        self.contenedor_modelo.set_visibility(False)
 
     def al_cambiar_target(self, _=None):
         """Quita de las features la columna elegida como salida.
@@ -365,6 +377,7 @@ class Gui:
             self.contenedor_porcentajes.set_visibility(False)
             self.etiqueta_seleccion.set_visibility(False)
             self.resultado_separacion.set_visibility(False)
+            self.contenedor_modelo.set_visibility(False)
             ui.notify(
                 "\n".join(errores), type="negative", position="center",
                 timeout=5000, multi_line=True,
@@ -384,6 +397,7 @@ class Gui:
         self.contenedor_porcentajes.set_visibility(True)
         self.resultado_separacion.set_visibility(False)
         self.contenedor_preprocesado.set_visibility(False)
+        self.contenedor_modelo.set_visibility(False)
 
     def separacion_datos(self):
         """Separa los datos en entrenamiento y test y muestra el resultado.
@@ -405,6 +419,7 @@ class Gui:
             self.x_train = self.x_test = self.y_train = self.y_test = None
             self.resultado_separacion.set_visibility(False)
             ui.notify(str(e), type="negative", position="center", timeout=5000)
+            self.contenedor_modelo.set_visibility(False)
             return
 
         self.etiqueta_confirmacion.set_content("División realizada correctamente.")
@@ -425,7 +440,7 @@ class Gui:
             )
             self.bloque_opciones_nulos.set_visibility(False)
             self.etiqueta_resultado_preprocesado.set_content("")
-
+            self.contenedor_modelo.set_visibility(True)
         else:
             x_train = resultado_nulos["nulos_x_train"]
             x_test = resultado_nulos["nulos_x_test"]
@@ -450,6 +465,7 @@ class Gui:
             self.etiqueta_diagnostico.set_content(desglose)
             self.bloque_opciones_nulos.set_visibility(True)
             self.etiqueta_resultado_preprocesado.set_content("")
+            self.contenedor_modelo.set_visibility(False)
 
     def aplicar_preprocesado(self):
         estrategia = self.radio_estrategia.value
@@ -508,13 +524,25 @@ class Gui:
                 self.etiqueta_diagnostico.set_content(
                     "<b>¡Ya no quedan valores inexistentes (NaN) en los datasets!</b>"
                 )
+                self.contenedor_modelo.set_visibility(True)
             else:
                 self.etiqueta_diagnostico.set_content(f"<b>{escape(resultado_nulos['mensaje'])}</b>")
+                self.contenedor_modelo.set_visibility(False)
 
             self.bloque_opciones_nulos.set_visibility(True)
 
         except ValueError as e:
             ui.notify(str(e), type="negative", position="center", timeout=5000)
+
+    def crear_modelo(self):
+        """Crea el modelo de regresión lineal (pendiente de implementar).
+
+        Returns
+        -------
+        None.
+        """
+        ui.notify("Botón pulsado: aquí se creará el modelo", position="center")
+
     
 
 def main():

@@ -11,7 +11,7 @@ def identificar_nulos(x_train, x_test, y_train, y_test):
     total_nulos = (nulos_x_train.sum()
         + nulos_x_test.sum()
         + nulos_y_train.sum()
-        + nulos_x_test.sum()
+        + nulos_y_test.sum()
     )
     if total_nulos == 0:
         return {"nulos":False,
@@ -22,6 +22,7 @@ def identificar_nulos(x_train, x_test, y_train, y_test):
                 "nulos_y_test":nulos_y_test
                 }
     return {"nulos":True,
+            "mensaje": "Todavía quedan valores inexistentes.",
             "nulos_x_train":nulos_x_train,
             "nulos_x_test":nulos_x_test,
             "nulos_y_train":nulos_y_train,
