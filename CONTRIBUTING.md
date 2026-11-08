@@ -11,7 +11,7 @@
 -main: Contiene exclusivamente código estable y listo, solo recibe cambios de dev cuando se va a publicar una release.
 -dev: Es la rama principal de integración del desarrollo diario que funciona.
 ¡NO HACER COMMITS DIRECTAMENTE EN MAIN O DEV!
--Ramas feature: Ramas de trabajo de los desarrolladores, tiene que funcionar antes de hacer merge de dev con ellas
+-Ramas feature: Ramas de trabajo de los desarrolladores, tiene que funcionar antes de hacer merge de dev con ellas (pruebas en local y última ejecución de GitHub Actions correctas, ver sección 6.3)
 -Ramas fix: Ramas que se utilizan para solucionar cualquier error que pueda tener el proyecto.
 -Ramas docs: Utilizadas cuando se cambia la documentación del proyecto.
 
@@ -61,16 +61,20 @@
       git commit -m "escribe el mensaje del commit"
       git push origin <tipo-de-rama/numero-y/o-descripcion>
       ```
+
+    -Al hacer push, GitHub Actions ejecuta las pruebas automáticamente sobre tu rama. Comprueba en la pestaña Actions del repositorio que la última ejecución de tu rama ha terminado correctamente (✔ verde). Si falla, corrígelo y vuelve a subir.
     
     -Actualiza tu rama
 
-    -Si funciona, fusiónala a dev y súbela al repositorio:
+    -Si las pruebas pasan en local y la última ejecución de GitHub Actions de tu rama es correcta, fusiónala a dev y súbela al repositorio (reglas completas en la sección 6.3):
 
       ```bash
       git checkout dev
       git merge <tipo-de-rama/numero-y/o-descripcion>
       git push origin dev
       ```
+
+    -Tras subir dev, comprueba en la pestaña Actions que la ejecución sobre dev también termina correctamente (ver sección 6.3).
 
   ### 4. Borrar tu rama(cuando acabes una tarea/historia):
     -Una vez dev se haya fusionado y subido al repositorio borra tu rama local:
@@ -131,6 +135,12 @@ tipo: descripción breve en presente o imperativo
     uv run pytest
     ```
 
+    Además, GitHub Actions ejecuta estas mismas pruebas automáticamente, en un entorno limpio, 
+    cada vez que se suben cambios a cualquier rama (flujo definido en .github/workflows/tests.yml).
+    El resultado de cada ejecución se consulta en la pestaña Actions del repositorio.
+    Qué hace cada paso del flujo, cómo localizar la rama y la prueba que ha fallado
+    y los fallos que pasan en local pero fallan en GitHub están documentados en docs/integracion-continua.md.
+
   ### 2. Cómo añadir pruebas nuevas
     Ubicación y formato: Las pruebas se deben crear en la carpeta tests/ con el nombre test_<modulo>.py 
     Cada función de prueba debe empezar por test_ (ej. def test_codigo_a_probar:).
@@ -147,16 +157,30 @@ tipo: descripción breve en presente o imperativo
     Esto genera una carpeta temporal única en el sistema que `pytest` borra automáticamente al finalizar la ejecución.
 
   ### 3. Cuáles son las reglas de fusión
+    Estas reglas se basan en el resultado de GitHub Actions además de en las pruebas en local.
+
+    Rama de trabajo → dev:
     Antes de fusionar cualquier rama de trabajo (feature, fix o docs) en dev, 
-    se debe actualizar la rama con los últimos cambios de dev 
-    y ejecutar todas las pruebas en local mediante uv run pytest. 
-    La fusión solo se autoriza si el 100 % de los tests se ejecutan con éxito.
+    se debe actualizar la rama con los últimos cambios de dev. 
+    La fusión solo se autoriza si se cumplen las dos condiciones:
+      -Las pruebas pasan en local mediante uv run pytest (el 100 % de los tests con éxito).
+      -La última ejecución de GitHub Actions sobre esa rama ha terminado correctamente.
+
+    Después de fusionar en dev:
+    Tras cada fusión en dev, se comprueba que la ejecución de GitHub Actions sobre dev 
+    también termina correctamente. Si falla:
+      -Se crea en Taiga una tarea de corrección.
+      -Se corrige en su rama fix.
+      -No se fusiona ninguna otra rama en dev hasta que la corrección esté fusionada y dev vuelva a estar en verde.
+
+    dev → main:
+    dev solo se fusiona en main si su última ejecución en GitHub Actions ha terminado correctamente.
 
 ## 7. PROCEDIMIENTO DE RELEASE
 
 Para publicar una nueva versión del proyecto, se debe seguir estrictamente este procedimiento en orden:
 
-### 1. Asegurarse de que todas las pruebas automatizadas pasan correctamente en la rama `dev`:
+### 1. Asegurarse de que todas las pruebas automatizadas pasan correctamente en la rama `dev`, tanto en local como en GitHub Actions (la última ejecución sobre dev debe estar en verde):
 
     ```bash
     uv run pytest
