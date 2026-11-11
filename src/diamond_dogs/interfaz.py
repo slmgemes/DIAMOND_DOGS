@@ -11,7 +11,12 @@ from diamond_dogs.crear_modelo import entrenar_modelo, calcular_metricas, escrib
 import matplotlib.pyplot as plt
 
 class Gui:
-    """Clase para crear la interfaz gráfica de importación y visualización de datos.
+    """Interfaz gráfica de la aplicación.
+
+    Permite importar un archivo de datos, verlo en una tabla, elegir las
+    columnas de entrada y de salida, separar los datos en entrenamiento y
+    test, tratar los valores inexistentes y crear un modelo de regresión
+    lineal con su fórmula, sus métricas y su gráfico.
 
     Attributes
     ----------
@@ -21,18 +26,84 @@ class Gui:
         DataFrame con los datos importados.
     ext : str
         Extensión del archivo importado.
+    features : list of str
+        Columnas de entrada confirmadas.
+    target : str
+        Columna de salida confirmada.
+    es_multiple : bool
+        Indica si la regresión tiene varias columnas de entrada.
+    x_train : pd.DataFrame
+        Columnas de entrada del conjunto de entrenamiento.
+    x_test : pd.DataFrame
+        Columnas de entrada del conjunto de test.
+    y_train : pd.DataFrame
+        Columna de salida del conjunto de entrenamiento.
+    y_test : pd.DataFrame
+        Columna de salida del conjunto de test.
+    x_train_base : pd.DataFrame
+        Copia de x_train antes de tratar los valores inexistentes.
+    x_test_base : pd.DataFrame
+        Copia de x_test antes de tratar los valores inexistentes.
+    y_train_base : pd.DataFrame
+        Copia de y_train antes de tratar los valores inexistentes.
+    y_test_base : pd.DataFrame
+        Copia de y_test antes de tratar los valores inexistentes.
+    modelo : LinearRegression
+        Modelo creado, o None si todavía no hay ninguno.
     etiqueta_ruta : Element
-        Elemento que muestra la ruta del archivo seleccionado.
+        Texto con la ruta del archivo seleccionado.
+    contenedor_tabla : Element
+        Contenedor de la tabla de datos.
     tabla : Element
         Tabla donde se muestran los datos importados.
     mensaje_vacio : Element
         Mensaje que se muestra cuando no hay datos.
-    desplegable : Element
-        Selector de opciones de la interfaz.
-    entrada_texto : Element
-        Campo de texto para introducir información.
-    etiqueta_mensaje : Element
-        Elemento donde se muestra el mensaje generado.
+    contenedor_seleccion : Element
+        Contenedor de los selectores de columnas.
+    sel_features : Element
+        Selector de las columnas de entrada.
+    sel_target : Element
+        Selector de la columna de salida.
+    etiqueta_seleccion : Element
+        Mensaje con la selección confirmada.
+    contenedor_porcentajes : Element
+        Contenedor de la separación de datos.
+    entrada_test : Element
+        Campo del porcentaje de test.
+    entrada_train : Element
+        Campo del porcentaje de entrenamiento, calculado automáticamente.
+    entrada_semilla : Element
+        Campo de la semilla de la separación.
+    resultado_separacion : Element
+        Contenedor del resultado de la separación.
+    etiqueta_confirmacion : Element
+        Mensaje de separación realizada correctamente.
+    etiqueta_filas : Element
+        Número de filas de entrenamiento y de test.
+    contenedor_preprocesado : Element
+        Contenedor del tratamiento de valores inexistentes.
+    etiqueta_diagnostico : Element
+        Valores inexistentes detectados en cada columna.
+    bloque_opciones_nulos : Element
+        Contenedor de las opciones de preprocesado.
+    radio_estrategia : Element
+        Selector de la estrategia de preprocesado.
+    entrada_constante : Element
+        Campo del valor constante para rellenar.
+    etiqueta_resultado_preprocesado : Element
+        Resultado del preprocesado aplicado.
+    contenedor_modelo : Element
+        Contenedor del botón "Crear modelo" y de sus resultados.
+    resultado_modelo : Element
+        Contenedor de los resultados del modelo.
+    etiqueta_modelo : Element
+        Mensaje de modelo creado correctamente.
+    etiqueta_formula : Element
+        Fórmula del modelo.
+    tabla_metricas : Element
+        Tabla con el R² y el ECM de entrenamiento y de test.
+    contenedor_grafico : Element
+        Contenedor del gráfico del ajuste.
 
     Methods
     -------
@@ -42,14 +113,30 @@ class Gui:
         Selecciona e importa un archivo.
     mostrar_datos_en_tabla()
         Muestra los datos importados en la tabla.
-    mostrar_texto()
-        Muestra un mensaje según la opción seleccionada y el texto introducido.
+    actualizar_selectores()
+        Carga las columnas del archivo en los selectores.
+    al_cambiar_target()
+        Quita de las entradas la columna elegida como salida.
+    confirmar_seleccion()
+        Valida y registra las columnas elegidas.
+    separacion_datos()
+        Separa los datos en entrenamiento y test.
+    iniciar_preprocesado()
+        Busca valores inexistentes en los datos separados.
+    aplicar_preprocesado()
+        Aplica la estrategia elegida a los valores inexistentes.
+    crear_modelo()
+        Crea el modelo y muestra su fórmula, sus métricas y su gráfico.
+    ocultar_modelo()
+        Oculta el botón "Crear modelo" y borra el modelo anterior.
+    mostrar_boton_modelo()
+        Muestra el botón "Crear modelo".
     """
 
     def __init__(self):
         """Inicializa los atributos y construye los elementos de la interfaz.
 
-        Return  s
+        Returns
         -------
         None.
         """
@@ -220,9 +307,6 @@ class Gui:
                     self.resultado_modelo.set_visibility(False)
                 self.contenedor_modelo.set_visibility(False)
 
-
-
-
     def elegir_ruta(self):
         """Abre el selector de archivos del sistema.
 
@@ -316,7 +400,18 @@ class Gui:
 
     #!
     def _mostrar_mensaje_vacio(self, mensaje):
-        """Crea o actualiza el mensaje dentro del contenedor de la tabla."""
+        """Muestra un mensaje dentro del contenedor de la tabla.
+
+        Parameters
+        ----------
+        mensaje : str
+            Texto que se muestra.
+
+        Returns
+        -------
+        None.
+        """
+        
         if self.mensaje_vacio is None:
             with self.contenedor_tabla:
                 self.mensaje_vacio = ui.html(
@@ -328,7 +423,14 @@ class Gui:
         self.mensaje_vacio.set_visibility(True)
 
     def _columnas_features(self):
-        """Devuelve las features seleccionadas siempre como lista."""
+        """Devuelve las columnas de entrada seleccionadas siempre como lista.
+
+        Returns
+        -------
+        list
+            Columnas de entrada seleccionadas, o una lista vacía si no hay ninguna.
+        """
+
         valor = self.sel_features.value
         if valor is None:
             return []
@@ -449,6 +551,13 @@ class Gui:
         self.iniciar_preprocesado()
 
     def iniciar_preprocesado(self):
+        """Busca valores inexistentes en los datos separados y muestra el resultado.
+
+        Returns
+        -------
+        None.
+        """
+
         resultado_nulos = identificar_nulos(self.x_train, self.x_test, self.y_train, self.y_test)
         self.contenedor_preprocesado.set_visibility(True)
 
@@ -486,6 +595,13 @@ class Gui:
             self.ocultar_modelo()
 
     def aplicar_preprocesado(self):
+        """Aplica a los valores inexistentes la estrategia elegida por el usuario.
+
+        Returns
+        -------
+        None.
+        """
+                
         estrategia = self.radio_estrategia.value
         cte = self.entrada_constante.value
 
@@ -553,7 +669,7 @@ class Gui:
             ui.notify(str(e), type="negative", position="center", timeout=5000)
 
     def crear_modelo(self):
-        """Crea el modelo y muestra su fórmula y sus métricas.
+        """Crea el modelo y muestra su fórmula, sus métricas y su gráfico.
 
         Returns
         -------
