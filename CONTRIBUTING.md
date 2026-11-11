@@ -180,20 +180,41 @@ tipo: descripción breve en presente o imperativo
 
 Para publicar una nueva versión del proyecto, se debe seguir estrictamente este procedimiento en orden:
 
-### 1. Asegurarse de que todas las pruebas automatizadas pasan correctamente en la rama `dev`, tanto en local como en GitHub Actions (la última ejecución sobre dev debe estar en verde):
-
-    ```bash
-    uv run pytest
-    ```
-### 2. Situarse en la rama dev y actualizarla con el repositorio remoto:
+### 1. Situarse en la rama dev y actualizarla con el repositorio remoto:
 
     ```bash
     git checkout dev
     git pull origin dev
     ```
-### 3. Comprobar que el campo version del archivo pyproject.toml refleja exactamente la versión que se va a publicar:
 
-    Si no es así, corregirlo en una rama de trabajo y fusionarlo antes de continuar.
+### 2. Asegurarse de que todas las pruebas automatizadas pasan correctamente en la rama `dev`, tanto en local como en GitHub Actions (la última ejecución sobre dev debe estar en verde):
+
+    ```bash
+    uv run pytest
+    ```
+    
+### 3. Comprobar que el README.md y el campo version del archivo pyproject.toml reflejan exactamente la versión que se va a publicar:
+
+    Si el README.md no describe las funcionalidades de la versión, actualizarlo en una rama docs y fusionarla en dev antes de continuar.
+
+    Si la versión no es correcta, corregirla en una rama docs creada desde dev (por ejemplo, para la versión 0.2.0):
+
+    ```bash
+    git checkout -b docs/version-0.2.0
+    ```
+
+    Cambiar a mano el campo version en pyproject.toml y actualizar el archivo uv.lock, que también guarda la versión del proyecto:
+
+    ```bash
+    uv lock
+    uv run pytest
+    git add pyproject.toml uv.lock
+    git commit -m "docs: actualiza la versión a 0.2.0"
+    git push origin docs/version-0.2.0
+    ```
+
+    Si no se sube el uv.lock actualizado, GitHub Actions falla.
+    Fusionar la rama en dev siguiendo la sección 3 y comprobar que la ejecución de GitHub Actions sobre dev termina correctamente.
 
 ### 4. Fusión de dev en main y subida al repositorio:
 
@@ -203,13 +224,19 @@ Para publicar una nueva versión del proyecto, se debe seguir estrictamente este
     git merge dev
     git push origin main
     ```
-### 5. Creación y subida de la etiqueta (Tag) (Por ejemplo la versión 0.1.0):
+### 5. Creación y subida de la etiqueta (Tag) (Por ejemplo la versión 0.2.0):
 
     ```bash
-    git tag -a v0.1.0 -m "Versión 0.1.0"
-    git push origin v0.1.0
+    git tag -a v0.2.0 -m "Versión 0.2.0"
+    git push origin v0.2.0
     ```
 ### 6. Creación de la Release en GitHub:
+
+    -Obtener la lista de commits desde la versión anterior (por ejemplo, de v0.1.0 a v0.2.0):
+
+    ```bash
+    git log v0.1.0..v0.2.0 --oneline
+    ```
 
     -Acceder a la sección Releases del repositorio en GitHub.
     -Hacer clic en Draft a new release y seleccionar la etiqueta recién subida.
@@ -218,7 +245,7 @@ Para publicar una nueva versión del proyecto, se debe seguir estrictamente este
         Una descripción breve de la aplicación y el estado actual del proyecto.
         Las funcionalidades incluidas (agrupadas a partir de los commits feat) y las correcciones (fix).
         Las funcionalidades pendientes para próximas versiones (como la persistencia de modelos y predicciones).
-        Un enlace directo al README.md de la versión publicada (ej. https://github.com/slmgemes/DIAMOND_DOGS/blob/v0.1.0/README.md).
+        Un enlace directo al README.md de la versión publicada (ej. https://github.com/slmgemes/DIAMOND_DOGS/blob/v0.2.0/README.md).
     -Marcar la casilla Set as a pre-release en caso de que aún se encuentre en fase de desarrollo.
     -Publicar la Release haciendo clic en el botón Publish release.
   
@@ -226,3 +253,4 @@ Para publicar una nueva versión del proyecto, se debe seguir estrictamente este
     -Descargar el archivo comprimido del código fuente.
     -Descomprimirlo en una carpeta nueva y limpia en el equipo local.
     -Comprobar que funciona siguiendo los pasos descritos en el README.md.
+    -La carpeta data/ no está en el repositorio: para probar la aplicación, usar un dataset de la carpeta data/ local.
