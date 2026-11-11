@@ -4,12 +4,16 @@ Este proyecto consiste en el desarrollo de una aplicación en Python para el pro
 
 FUNCIONALIDADES INCLUIDAS
 
-Esta versión incluye el módulo completo de carga y preparación de datos:
+Esta versión incluye la carga y preparación de datos y la creación y evaluación del modelo:
 - Importación de datos: Soporte para archivos CSV, Excel (.xlsx, .xls) y bases de datos SQLite (.sqlite, .db).
 - Visualización: Tabla integrada para la inspección rápida de los datos importados.
 - Selección de columnas: Elección de variables de entrada (features) y de salida (target).
 - Separación de datos: División configurable en conjuntos de entrenamiento y test mediante porcentajes y semillas de reproducibilidad.
 - Preprocesamiento de valores nulos: Detección automática de celdas vacías y aplicación de estrategias (eliminación de filas, imputación por media, mediana o valor constante numérico) de forma no destructiva, permitiendo cambiar de método libremente sin alterar el archivo original en disco.
+- Creación del modelo: Entrenamiento de un modelo de regresión lineal (simple o múltiple) únicamente con el conjunto de entrenamiento. El botón "Crear modelo" solo aparece cuando se han confirmado las columnas, se han separado los datos y no quedan valores inexistentes.
+- Fórmula del modelo: Se muestra con los nombres de las columnas seleccionadas y los coeficientes redondeados a 4 decimales.
+- Métricas de evaluación: Coeficiente de determinación (R²) y error cuadrático medio (ECM), calculados en entrenamiento y en test y mostrados en una tabla.
+- Gráfico del ajuste: Integrado en la aplicación. En regresión simple muestra los puntos de entrenamiento y test junto con la recta del modelo; en regresión múltiple, los valores reales frente a los predichos junto con la recta en la que ambos coinciden.
 
 REQUISITOS
 
@@ -38,7 +42,7 @@ INSTALAR ENTORNO
 
 3. Ejecuta la aplicación:
 
-    uv run python .\src\diamond_dogs\interfaz.py 
+    uv run python src/diamond_dogs/interfaz.py
 
 EJECUTAR APLICACIÓN
 
@@ -48,7 +52,7 @@ EJECUTAR APLICACIÓN
 
 2. Ejecuta la aplicación ejecutando en la terminal:
 
-    uv run python .\src\diamond_dogs\interfaz.py 
+    uv run python src/diamond_dogs/interfaz.py
 
 3. Interactúa con el botón de selección de archivos para cargar un dataset.
 
@@ -57,3 +61,5 @@ EJECUTAR APLICACIÓN
 5. Introduce el porcentaje de test deseado junto con la semilla y pulsa separar datos.
 
 6. En el bloque de tratamiento de valores inexistentes, escoge una estrategia de preprocesado y aplícala; el sistema permite reintentar y cambiar de opción cuantas veces sea necesario partiendo siempre de los datos originales intactos.
+
+7. Cuando no queden valores inexistentes, pulsa "Crear modelo" para entrenar el modelo y consultar su fórmula, sus métricas (R² y ECM) y el gráfico del ajuste.
