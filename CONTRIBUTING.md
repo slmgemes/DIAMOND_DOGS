@@ -16,7 +16,7 @@
 -Ramas docs: Utilizadas cuando se cambia la documentación del proyecto.
 
   ### Nombres:
-  Las ramas feature deben utilizar el prefijo del tipo de rama seguidas del numero de la tarea a la que pertenecen y una breve en minúsculas separada por guiones.
+  Las ramas feature deben utilizar el prefijo del tipo de rama seguidas del numero de la tarea o historia a la que pertenecen y una breve descripción en minúsculas separada por guiones.
 
   Las ramas fix deben utilizar el prefijo del tipo de rama seguidas del numero de la tarea en la que están arreglando (si pertenece a una en específico) y una breve en minúsculas separada por guiones.
   
