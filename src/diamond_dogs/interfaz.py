@@ -50,6 +50,10 @@ class Gui:
         Copia de y_test antes de tratar los valores inexistentes.
     modelo : LinearRegression
         Modelo creado, o None si todavía no hay ninguno.
+    metricas : dict
+        Métricas del modelo creado, o None si todavía no hay ninguno.
+    formula : str
+        Fórmula del modelo creado, o una cadena vacía si todavía no hay ninguno.
     etiqueta_ruta : Element
         Texto con la ruta del archivo seleccionado.
     contenedor_tabla : Element
@@ -144,6 +148,8 @@ class Gui:
         self.df = None
         self.ext = ""
         self.modelo = None
+        self.metricas = None
+        self.formula = ""
 
         # Contenedor principal de la aplicación.
         with ui.element("div").classes("app"):
@@ -687,11 +693,16 @@ class Gui:
         except Exception as e:
             # Cualquier error: se avisa y la aplicación sigue funcionando.
             self.modelo = None
+            self.metricas = None
+            self.formula = ""
             self.resultado_modelo.set_visibility(False)
             ui.notify(f"No se pudo crear el modelo: {e}", type="negative",
                     position="center", timeout=5000)
             return
 
+        self.metricas = metricas
+        self.formula = formula
+        self.etiqueta_formula.set_content(escape(formula))
         self.etiqueta_formula.set_content(escape(formula))
         self.tabla_metricas.set_content(
             "<table>"
@@ -725,6 +736,8 @@ class Gui:
         -------
         None.
         """
+        self.modelo = None
+        self.metricas = None
         self.modelo = None
         self.resultado_modelo.set_visibility(False)
         self.contenedor_modelo.set_visibility(False)
