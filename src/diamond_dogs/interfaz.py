@@ -50,6 +50,8 @@ class Gui:
         Copia de y_test antes de tratar los valores inexistentes.
     modelo : LinearRegression
         Modelo creado, o None si todavía no hay ninguno.
+    descripcion_modelo : str
+        Descripción opcional del modelo creado.
     etiqueta_ruta : Element
         Texto con la ruta del archivo seleccionado.
     contenedor_tabla : Element
@@ -104,6 +106,8 @@ class Gui:
         Tabla con el R² y el ECM de entrenamiento y de test.
     contenedor_grafico : Element
         Contenedor del gráfico del ajuste.
+    entrada_descripcion_modelo : Element
+        Área de texto para la descripción opcional del modelo.
 
     Methods
     -------
@@ -131,6 +135,8 @@ class Gui:
         Oculta el botón "Crear modelo" y borra el modelo anterior.
     mostrar_boton_modelo()
         Muestra el botón "Crear modelo".
+    actualizar_descripcion_modelo(evento)
+        Actualiza la descripción del modelo a partir del área de texto.
     """
 
     def __init__(self):
@@ -144,6 +150,7 @@ class Gui:
         self.df = None
         self.ext = ""
         self.modelo = None
+        self.descripcion_modelo = ""
 
         # Contenedor principal de la aplicación.
         with ui.element("div").classes("app"):
@@ -304,6 +311,13 @@ class Gui:
                         self.etiqueta_formula = ui.html("", tag="p", sanitize=False).classes("formula-modelo")
                         self.tabla_metricas = ui.html("", tag="div", sanitize=False).classes("tabla-metricas")
                         self.contenedor_grafico = ui.element("div").classes("grafico-modelo")
+                        self.entrada_descripcion_modelo = ui.textarea(
+                            label="Descripción (opcional)",
+                            placeholder="¿En qué consiste este modelo y para qué se creó?",
+                        ).props("outlined").classes("descripcion-modelo")
+                        self.entrada_descripcion_modelo.on_value_change(
+                            self.actualizar_descripcion_modelo
+                        )
                     self.resultado_modelo.set_visibility(False)
                 self.contenedor_modelo.set_visibility(False)
 
@@ -687,6 +701,9 @@ class Gui:
         except Exception as e:
             # Cualquier error: se avisa y la aplicación sigue funcionando.
             self.modelo = None
+            self.descripcion_modelo = ""
+            self.entrada_descripcion_modelo.value = ""
+            self.entrada_descripcion_modelo.update()
             self.resultado_modelo.set_visibility(False)
             ui.notify(f"No se pudo crear el modelo: {e}", type="negative",
                     position="center", timeout=5000)
@@ -718,6 +735,10 @@ class Gui:
 
         self.resultado_modelo.set_visibility(True)
 
+    def actualizar_descripcion_modelo(self, evento):
+        """Actualiza la descripción opcional del modelo."""
+        self.descripcion_modelo = evento.value or ""
+
     def ocultar_modelo(self):
         """Oculta el botón y borra el modelo anterior.
 
@@ -726,6 +747,9 @@ class Gui:
         None.
         """
         self.modelo = None
+        self.descripcion_modelo = ""
+        self.entrada_descripcion_modelo.value = ""
+        self.entrada_descripcion_modelo.update()
         self.resultado_modelo.set_visibility(False)
         self.contenedor_modelo.set_visibility(False)
 
