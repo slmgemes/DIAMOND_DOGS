@@ -3,6 +3,21 @@ from pathlib import Path
 import numpy as np
 
 VERSION_FORMATO = 1
+EXTENSION = ".model.json"
+
+def agregar_extension(ruta):
+    ruta = Path(ruta)
+    nombre = ruta.name
+    if not nombre:
+        raise ValueError("El nombre del archivo está vacío.")
+    if nombre.lower().endswith(EXTENSION):
+        return ruta
+    if nombre.lower().endswith(".json"):
+        nombre = nombre[:-len(".json")]
+    return ruta.with_name(nombre + EXTENSION)
+
+def existe_archivo(ruta):
+    return agregar_extension(ruta).exists()
 
 def construir_datos_modelo(modelo, entradas, salida, metricas, filas_train, filas_test, formula, descripcion=""):
     coeficientes = np.ravel(modelo.coef_).tolist()
@@ -35,6 +50,6 @@ def guardar_modelo(ruta, modelo, entradas, salida, metricas, filas_train, filas_
     datos = construir_datos_modelo(
         modelo, entradas, salida, metricas, filas_train, filas_test, formula, descripcion
     )
-    ruta = Path(ruta)
+    ruta = agregar_extension(ruta)
     ruta.write_text(json.dumps(datos, indent=4, ensure_ascii=False), encoding="utf-8")
     return ruta

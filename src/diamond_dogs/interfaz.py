@@ -1,13 +1,14 @@
 import tkinter as tk
 from html import escape
 from pathlib import Path
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from nicegui import  ui
 from diamond_dogs.importador import ImportadorDatos
 from diamond_dogs.seleccion import REGRESION_MULTIPLE, validar_seleccion, es_regresion_multiple, obtener_columnas_disponibles
 from diamond_dogs.separacion_datos import separar_datos
 from diamond_dogs.preprocesado import identificar_nulos, eliminar_nulos, rellenar_media, rellenar_mediana, rellenar_constante
 from diamond_dogs.crear_modelo import entrenar_modelo, calcular_metricas, escribir_formula,datos_grafico
+from diamond_dogs.persistencia_modelos import EXTENSION, agregar_extension, existe_archivo, guardar_modelo
 import matplotlib.pyplot as plt
 
 class Gui:
@@ -135,6 +136,10 @@ class Gui:
         Oculta el botón "Crear modelo" y borra el modelo anterior.
     mostrar_boton_modelo()
         Muestra el botón "Crear modelo".
+    elegir_ruta_guardado()
+        Abre el diálogo de guardado y pide confirmación si el archivo ya existe.
+    guardar_modelo_archivo()
+        Pide dónde guardar el modelo y lo guarda en un archivo.
     """
 
     def __init__(self):
@@ -309,6 +314,7 @@ class Gui:
                         self.etiqueta_modelo = ui.html("Modelo creado correctamente.", tag="p", sanitize=False).classes("mensaje-confirmacion")
                         self.etiqueta_formula = ui.html("", tag="p", sanitize=False).classes("formula-modelo")
                         self.tabla_metricas = ui.html("", tag="div", sanitize=False).classes("tabla-metricas")
+                        ui.html("Guardar modelo", tag="button", sanitize=False).classes("boton").on("click", self.guardar_modelo_archivo)
                         self.contenedor_grafico = ui.element("div").classes("grafico-modelo")
                     self.resultado_modelo.set_visibility(False)
                 self.contenedor_modelo.set_visibility(False)
@@ -751,7 +757,64 @@ class Gui:
         """
         self.ocultar_modelo()
         self.contenedor_modelo.set_visibility(True)
-    
+
+    def elegir_ruta_guardado(self):
+        """Abre el diálogo de guardado y pide confirmación si el archivo ya existe.
+
+        Returns
+        -------
+        str
+            Ruta elegida, con la extensión .model.json añadida, o una cadena
+            vacía si el usuario cierra el diálogo o no quiere sobrescribir.
+        """
+        raiz = tk.Tk()
+        raiz.withdraw()
+        raiz.attributes("-topmost", True)
+        raiz.update()
+
+        try:
+            ruta = filedialog.asksaveasfilename(
+                title="Guardar modelo",
+                defaultextension=EXTENSION,
+                filetypes=(("Modelos de Diamond Dogs", "*" + EXTENSION),),
+                confirmoverwrite=False,
+            )
+            if not ruta:
+                return ""
+
+            ruta = agregar_extension(ruta)
+            if existe_archivo(ruta):
+                sobrescribir = messagebox.askyesno(
+                    "Sobrescribir archivo",
+                    f"El archivo ya existe:\n{ruta}\n\n¿Quieres sobrescribirlo?",
+                    parent=raiz,
+                )
+                if not sobrescribir:
+                    return ""
+            return str(ruta)
+        finally:
+            raiz.update()
+            raiz.destroy()
+
+    def guardar_modelo_archivo(self):
+        """Pide dónde guardar el modelo y lo guarda en un archivo.
+
+        Returns
+        -------
+        None.
+        """
+        if self.modelo is None:
+            return
+
+        ruta = self.elegir_ruta_guardado()
+        if not ruta:
+            return
+
+        guardar_modelo(
+            ruta, self.modelo, self.features, self.target, self.metricas,
+            len(self.x_train), len(self.x_test), self.formula,
+        )
+
 
 def main():
     """Configura la página principal e inicia la aplicación.
