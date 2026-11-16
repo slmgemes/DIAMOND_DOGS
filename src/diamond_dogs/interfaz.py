@@ -806,15 +806,30 @@ class Gui:
         if self.modelo is None:
             return
 
+        descripcion = ""
+
+        if not descripcion.strip():
+            ui.notify("El modelo se guardará sin descripción.", type="warning", position="center", timeout=3000)
+
         ruta = self.elegir_ruta_guardado()
         if not ruta:
             return
 
-        guardar_modelo(
-            ruta, self.modelo, self.features, self.target, self.metricas,
-            len(self.x_train), len(self.x_test), self.formula,
-        )
+        try:
+            ruta_guardada = guardar_modelo(
+                ruta, self.modelo, self.features, self.target, self.metricas,
+                len(self.x_train), len(self.x_test), self.formula, descripcion,
+            )
+        except ValueError as e:
+            ui.notify(str(e), type="negative", position="center", timeout=5000)
+            return
+        except Exception as e:
+            ui.notify(f"No se pudo guardar el modelo: {e}", type="negative",
+                      position="center", timeout=5000)
+            return
 
+        ui.notify(f"Modelo guardado en: {ruta_guardada}", type="positive",
+                  position="center", timeout=5000)
 
 def main():
     """Configura la página principal e inicia la aplicación.
