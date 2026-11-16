@@ -4,37 +4,33 @@ import numpy as np
 
 VERSION_FORMATO = 1
 
-def construir_datos_modelo(modelo, entradas, salida, metricas, filas_train, filas_test, formula, descripcion=""):
-    coeficientes = np.ravel(modelo.coef_).tolist()
-    if len(coeficientes) != len(entradas):
-        raise ValueError("El modelo debe tener un coeficiente por cada columna de entrada.")
 
-    return {
-        "version_formato": VERSION_FORMATO,
-        "descripcion": descripcion or "",
-        "columnas_entrada": list(entradas),
-        "columna_salida": salida,
-        "coeficientes": coeficientes,
-        "termino_independiente": float(np.ravel(modelo.intercept_)[0]),
-        "formula": formula,
-        "metricas": {
-            "entrenamiento": {
-                "filas": int(filas_train),
-                "ecm": float(metricas["ecm_train"]),
-                "r2": float(metricas["r2_train"]),
-            },
-            "test": {
-                "filas": int(filas_test),
-                "ecm": float(metricas["ecm_test"]),
-                "r2": float(metricas["r2_test"]),
-            },
-        },
-    }
+def guardar_modelo(ruta, datos_modelo):
+    """Guarda la información del modelo en un archivo .model.json.
 
-def guardar_modelo(ruta, modelo, entradas, salida, metricas, filas_train, filas_test, formula, descripcion=""):
-    datos = construir_datos_modelo(
-        modelo, entradas, salida, metricas, filas_train, filas_test, formula, descripcion
-    )
+    Solo se escriben los campos de la estructura documentada (CAMPOS), aunque
+    datos_modelo tenga más: así nunca se guardan datos ni gráficos.
+
+    Parameters
+    ----------
+    ruta : str or Path
+        Ruta del archivo. Si no termina en .model.json, se añade.
+    datos_modelo : dict
+        Información del modelo, tal como la devuelve crear_datos_modelo.
+
+    Returns
+    -------
+    Path
+        Ruta del archivo guardado, con la extensión añadida.
+
+    Raises
+    ------
+    ValueError
+        Si faltan campos en la información del modelo o no se puede escribir
+        el archivo (carpeta inexistente, sin permisos...). El mensaje es
+        apto para mostrarlo al usuario.
+    """
+
     ruta = Path(ruta)
-    ruta.write_text(json.dumps(datos, indent=4, ensure_ascii=False), encoding="utf-8")
+    ruta.write_text(json.dumps(datos_modelo, indent=4, ensure_ascii=False), encoding="utf-8")
     return ruta
