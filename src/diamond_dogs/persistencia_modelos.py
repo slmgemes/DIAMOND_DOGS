@@ -1,11 +1,33 @@
 import json
 from pathlib import Path
-import numpy as np
 
-VERSION_FORMATO = 1
 EXTENSION = ".model.json"
+CAMPOS = (
+    "version_formato", "descripcion", "columnas_entrada", "columna_salida",
+    "coeficientes", "termino_independiente", "formula", "metricas",
+)
 
 def agregar_extension(ruta):
+    """Devuelve la ruta con la extensión de los archivos de modelo (.model.json).
+
+    Si el nombre ya termina en .model.json no se cambia. Si termina en .json,
+    se sustituye por .model.json. En cualquier otro caso se añade al final.
+
+    Parameters
+    ----------
+    ruta : str or Path
+        Ruta elegida por el usuario.
+
+    Returns
+    -------
+    Path
+        Ruta con la extensión .model.json.
+
+    Raises
+    ------
+    ValueError
+        Si la ruta no incluye un nombre de archivo.
+    """
     ruta = Path(ruta)
     nombre = ruta.name
     if not nombre:
@@ -17,6 +39,20 @@ def agregar_extension(ruta):
     return ruta.with_name(nombre + EXTENSION)
 
 def existe_archivo(ruta):
+    """Indica si ya existe el archivo que se crearía con esa ruta.
+
+    Se comprueba la ruta con la extensión añadida, que es la que se guarda.
+
+    Parameters
+    ----------
+    ruta : str or Path
+        Ruta elegida por el usuario.
+
+    Returns
+    -------
+    bool
+        True si el archivo ya existe y se sobrescribiría.
+    """
     return agregar_extension(ruta).exists()
 
 
@@ -46,6 +82,21 @@ def guardar_modelo(ruta, datos_modelo):
         apto para mostrarlo al usuario.
     """
 
-    ruta = Path(ruta)
-    ruta.write_text(json.dumps(datos_modelo, indent=4, ensure_ascii=False), encoding="utf-8")
+    faltan = [campo for campo in CAMPOS if campo not in datos_modelo]
+    if faltan:
+        raise ValueError("Faltan campos en la información del modelo: " + ", ".join(faltan) + ".")
+
+    datos = {campo: datos_modelo[campo] for campo in CAMPOS}
+    ruta = agregar_extension(ruta)
+    texto = json.dumps(datos, indent=4, ensure_ascii=False)
+
+    try:
+        ruta.write_text(texto, encoding="utf-8")
+    except PermissionError as e:
+        raise ValueError(f"No hay permisos para guardar en la carpeta elegida: {ruta.parent}") from e
+    except FileNotFoundError as e:
+        raise ValueError(f"La carpeta elegida no existe: {ruta.parent}") from e
+    except OSError as e:
+        raise ValueError(f"No se pudo guardar el modelo: {e}") from e
+
     return ruta

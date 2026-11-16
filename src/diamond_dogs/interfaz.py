@@ -329,7 +329,6 @@ class Gui:
                         self.etiqueta_modelo = ui.html("Modelo creado correctamente.", tag="p", sanitize=False).classes("mensaje-confirmacion")
                         self.etiqueta_formula = ui.html("", tag="p", sanitize=False).classes("formula-modelo")
                         self.tabla_metricas = ui.html("", tag="div", sanitize=False).classes("tabla-metricas")
-                        ui.html("Guardar modelo", tag="button", sanitize=False).classes("boton").on("click", self.guardar_modelo_archivo)
                         self.contenedor_grafico = ui.element("div").classes("grafico-modelo")
                         self.entrada_descripcion_modelo = ui.textarea(
                             label="Descripción (opcional)",
@@ -338,6 +337,11 @@ class Gui:
                         self.entrada_descripcion_modelo.on_value_change(
                             self.actualizar_descripcion_modelo
                         )
+                        ui.html(
+                            "Guardar modelo",
+                            tag="button",
+                            sanitize=False
+                        ).classes("boton").on("click", self.guardar_modelo_archivo)
                     self.resultado_modelo.set_visibility(False)
                 self.contenedor_modelo.set_visibility(False)
 
@@ -848,20 +852,27 @@ class Gui:
         if self.modelo is None:
             return
 
-        descripcion = ""
-
-        if not descripcion.strip():
-            ui.notify("El modelo se guardará sin descripción.", type="warning", position="center", timeout=3000)
+        if not self.datos_modelo["descripcion"].strip():
+            raiz = tk.Tk()
+            raiz.withdraw()
+            raiz.attributes("-topmost", True)
+            raiz.update()
+            
+            continuar_sin_desc = messagebox.askyesno(
+                "Advertencia: Descripción vacía",
+                "El modelo no tiene descripción.\n\n¿Quieres continuar sin descripción?", parent=raiz)
+            raiz.update()
+            raiz.destroy()
+            
+            if not continuar_sin_desc:
+                return
 
         ruta = self.elegir_ruta_guardado()
         if not ruta:
             return
 
         try:
-            ruta_guardada = guardar_modelo(
-                ruta, self.modelo, self.features, self.target, self.metricas,
-                len(self.x_train), len(self.x_test), self.formula, descripcion,
-            )
+            ruta_guardada = guardar_modelo(ruta, self.datos_modelo)
         except ValueError as e:
             ui.notify(str(e), type="negative", position="center", timeout=5000)
             return
