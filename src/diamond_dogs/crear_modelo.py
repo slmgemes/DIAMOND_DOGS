@@ -3,6 +3,70 @@
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 import pandas as pd
+from typing import TypedDict
+
+
+class MetricasPersistidas(TypedDict):
+    """Métricas de un subconjunto dentro de la estructura de persistencia."""
+
+    filas: int
+    ecm: float
+    r2: float
+
+
+class DatosModelo(TypedDict):
+    """Información del modelo con los campos de la estructura JSON investigada."""
+
+    version_formato: int
+    descripcion: str
+    columnas_entrada: list[str]
+    columna_salida: str
+    coeficientes: list[float]
+    termino_independiente: float
+    formula: str
+    metricas: dict[str, MetricasPersistidas]
+
+
+def crear_datos_modelo(
+    modelo: LinearRegression,
+    entradas: list[str],
+    salida: str,
+    formula: str,
+    metricas: dict[str, float],
+    x_train: pd.DataFrame,
+    x_test: pd.DataFrame,
+) -> DatosModelo:
+    """Construye la información del modelo con la estructura del prototipo JSON.
+
+    La descripción se inicia vacía para que cada modelo nuevo tenga su propio
+    valor, independiente del componente de interfaz.
+    """
+    return {
+        "version_formato": 1,
+        "descripcion": "",
+        "columnas_entrada": list(entradas),
+        "columna_salida": salida,
+        "coeficientes": [float(coeficiente) for coeficiente in modelo.coef_[0]],
+        "termino_independiente": float(modelo.intercept_[0]),
+        "formula": formula,
+        "metricas": {
+            "entrenamiento": {
+                "filas": len(x_train),
+                "ecm": float(metricas["ecm_train"]),
+                "r2": float(metricas["r2_train"]),
+            },
+            "test": {
+                "filas": len(x_test),
+                "ecm": float(metricas["ecm_test"]),
+                "r2": float(metricas["r2_test"]),
+            },
+        },
+    }
+
+
+def actualizar_descripcion(datos_modelo: DatosModelo, descripcion: str) -> None:
+    """Actualiza la descripción guardada en la información del modelo."""
+    datos_modelo["descripcion"] = descripcion
 
 def entrenar_modelo(x_train, y_train):
     """Entrena un modelo de regresión lineal solo con el conjunto de entrenamiento.

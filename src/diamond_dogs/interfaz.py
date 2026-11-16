@@ -7,7 +7,15 @@ from diamond_dogs.importador import ImportadorDatos
 from diamond_dogs.seleccion import REGRESION_MULTIPLE, validar_seleccion, es_regresion_multiple, obtener_columnas_disponibles
 from diamond_dogs.separacion_datos import separar_datos
 from diamond_dogs.preprocesado import identificar_nulos, eliminar_nulos, rellenar_media, rellenar_mediana, rellenar_constante
-from diamond_dogs.crear_modelo import entrenar_modelo, calcular_metricas, escribir_formula,datos_grafico
+from diamond_dogs.crear_modelo import (
+    DatosModelo,
+    actualizar_descripcion,
+    calcular_metricas,
+    crear_datos_modelo,
+    datos_grafico,
+    entrenar_modelo,
+    escribir_formula,
+)
 import matplotlib.pyplot as plt
 
 class Gui:
@@ -50,8 +58,8 @@ class Gui:
         Copia de y_test antes de tratar los valores inexistentes.
     modelo : LinearRegression
         Modelo creado, o None si todavía no hay ninguno.
-    descripcion_modelo : str
-        Descripción opcional del modelo creado.
+    datos_modelo : DatosModelo
+        Información del modelo y sus datos asociados, incluida la descripción.
     etiqueta_ruta : Element
         Texto con la ruta del archivo seleccionado.
     contenedor_tabla : Element
@@ -150,7 +158,7 @@ class Gui:
         self.df = None
         self.ext = ""
         self.modelo = None
-        self.descripcion_modelo = ""
+        self.datos_modelo: DatosModelo | None = None
 
         # Contenedor principal de la aplicación.
         with ui.element("div").classes("app"):
@@ -689,19 +697,28 @@ class Gui:
         -------
         None.
         """
+        self.modelo = None
+        self.datos_modelo = None
+        self.entrada_descripcion_modelo.value = ""
+        self.entrada_descripcion_modelo.update()
+
         try:
             self.modelo = entrenar_modelo(self.x_train, self.y_train)
             metricas = calcular_metricas(
                 self.modelo, self.x_train, self.x_test, self.y_train, self.y_test
             )
             formula = escribir_formula(self.target, self.features, self.modelo)
+            self.datos_modelo = crear_datos_modelo(
+                self.modelo, self.features, self.target, formula, metricas,
+                self.x_train, self.x_test,
+            )
             datos= datos_grafico(
                 self.modelo, self.x_train, self.x_test, self.y_train, self.y_test
             )
         except Exception as e:
             # Cualquier error: se avisa y la aplicación sigue funcionando.
             self.modelo = None
-            self.descripcion_modelo = ""
+            self.datos_modelo = None
             self.entrada_descripcion_modelo.value = ""
             self.entrada_descripcion_modelo.update()
             self.resultado_modelo.set_visibility(False)
@@ -737,7 +754,8 @@ class Gui:
 
     def actualizar_descripcion_modelo(self, evento):
         """Actualiza la descripción opcional del modelo."""
-        self.descripcion_modelo = evento.value or ""
+        if self.datos_modelo is not None:
+            actualizar_descripcion(self.datos_modelo, evento.value or "")
 
     def ocultar_modelo(self):
         """Oculta el botón y borra el modelo anterior.
@@ -747,7 +765,7 @@ class Gui:
         None.
         """
         self.modelo = None
-        self.descripcion_modelo = ""
+        self.datos_modelo = None
         self.entrada_descripcion_modelo.value = ""
         self.entrada_descripcion_modelo.update()
         self.resultado_modelo.set_visibility(False)

@@ -57,13 +57,18 @@ def test_descripcion_disponible_tras_crear_modelo_y_se_limpia_al_ocultarlo():
                 interfaz.actualizar_descripcion_modelo(
                     SimpleNamespace(value="Predice el resultado para el caso de uso.")
                 )
-            assert interfaz.descripcion_modelo == (
+            assert interfaz.datos_modelo["descripcion"] == (
                 "Predice el resultado para el caso de uso."
             )
 
             with usuario:
+                interfaz.crear_modelo()
+            assert interfaz.datos_modelo["descripcion"] == ""
+            assert interfaz.entrada_descripcion_modelo.value == ""
+
+            with usuario:
                 interfaz.ocultar_modelo()
             await usuario.should_not_see(kind=ui.textarea)
-            assert interfaz.descripcion_modelo == ""
+            assert interfaz.datos_modelo is None
 
     asyncio.run(comprobar_descripcion())
