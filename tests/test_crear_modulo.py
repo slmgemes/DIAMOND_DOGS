@@ -4,7 +4,9 @@ import pandas as pd
 import pytest
  
 from diamond_dogs.crear_modelo import (
+    actualizar_descripcion,
     calcular_metricas,
+    crear_datos_modelo,
     datos_grafico,
     entrenar_modelo,
     escribir_formula,
@@ -22,8 +24,52 @@ def test_entrenar_modelo_aprende_la_recta():
  
     assert modelo.coef_[0][0] == pytest.approx(2)
     assert modelo.intercept_[0] == pytest.approx(5)
- 
- 
+
+
+def test_nuevo_modelo_incluye_descripcion_vacia_en_datos_persistibles():
+    x_train = pd.DataFrame({"x": [1, 2, 3]})
+    y_train = pd.DataFrame({"y": [7, 9, 11]})
+    x_test = pd.DataFrame({"x": [4, 5]})
+    y_test = pd.DataFrame({"y": [13, 15]})
+    modelo = entrenar_modelo(x_train, y_train)
+    metricas = calcular_metricas(modelo, x_train, x_test, y_train, y_test)
+    formula = escribir_formula("y", ["x"], modelo)
+
+    datos = crear_datos_modelo(
+        modelo, ["x"], "y", formula, metricas, x_train, x_test
+    )
+
+    assert datos["descripcion"] == ""
+    assert datos["columnas_entrada"] == ["x"]
+    assert datos["columna_salida"] == "y"
+    assert datos["formula"] == formula
+    assert datos["metricas"]["entrenamiento"]["filas"] == 3
+    assert datos["metricas"]["test"]["filas"] == 2
+    assert set(datos) == {
+        "version_formato", "descripcion", "columnas_entrada", "columna_salida",
+        "coeficientes", "termino_independiente", "formula", "metricas",
+    }
+
+
+def test_actualizar_descripcion_modifica_datos_del_modelo():
+    x_train = pd.DataFrame({"x": [1, 2, 3]})
+    y_train = pd.DataFrame({"y": [7, 9, 11]})
+    x_test = pd.DataFrame({"x": [4, 5]})
+    modelo = entrenar_modelo(x_train, y_train)
+    metricas = {
+        "r2_train": 1.0, "ecm_train": 0.0,
+        "r2_test": 1.0, "ecm_test": 0.0,
+    }
+    datos = crear_datos_modelo(
+        modelo, ["x"], "y", "y = 2.0000 * x + 5.0000",
+        metricas, x_train, x_test,
+    )
+
+    actualizar_descripcion(datos, "Predice el valor de y a partir de x.")
+
+    assert datos["descripcion"] == "Predice el valor de y a partir de x."
+
+
 # ---------- Métricas ----------
  
 def test_metricas_devuelve_las_cuatro():
