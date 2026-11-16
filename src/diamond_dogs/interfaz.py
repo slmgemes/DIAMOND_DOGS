@@ -7,7 +7,15 @@ from diamond_dogs.importador import ImportadorDatos
 from diamond_dogs.seleccion import REGRESION_MULTIPLE, validar_seleccion, es_regresion_multiple, obtener_columnas_disponibles
 from diamond_dogs.separacion_datos import separar_datos
 from diamond_dogs.preprocesado import identificar_nulos, eliminar_nulos, rellenar_media, rellenar_mediana, rellenar_constante
-from diamond_dogs.crear_modelo import entrenar_modelo, calcular_metricas, escribir_formula,datos_grafico
+from diamond_dogs.crear_modelo import (
+    DatosModelo,
+    actualizar_descripcion,
+    calcular_metricas,
+    crear_datos_modelo,
+    datos_grafico,
+    entrenar_modelo,
+    escribir_formula,
+)
 from diamond_dogs.persistencia_modelos import EXTENSION, agregar_extension, existe_archivo, guardar_modelo
 import matplotlib.pyplot as plt
 
@@ -51,6 +59,8 @@ class Gui:
         Copia de y_test antes de tratar los valores inexistentes.
     modelo : LinearRegression
         Modelo creado, o None si todavía no hay ninguno.
+    datos_modelo : DatosModelo
+        Información del modelo y sus datos asociados, incluida la descripción.
     metricas : dict
         Métricas del modelo creado, o None si todavía no hay ninguno.
     formula : str
@@ -109,6 +119,8 @@ class Gui:
         Tabla con el R² y el ECM de entrenamiento y de test.
     contenedor_grafico : Element
         Contenedor del gráfico del ajuste.
+    entrada_descripcion_modelo : Element
+        Área de texto para la descripción opcional del modelo.
 
     Methods
     -------
@@ -136,6 +148,8 @@ class Gui:
         Oculta el botón "Crear modelo" y borra el modelo anterior.
     mostrar_boton_modelo()
         Muestra el botón "Crear modelo".
+    actualizar_descripcion_modelo(evento)
+        Actualiza la descripción del modelo a partir del área de texto.
     elegir_ruta_guardado()
         Abre el diálogo de guardado y pide confirmación si el archivo ya existe.
     guardar_modelo_archivo()
@@ -153,6 +167,7 @@ class Gui:
         self.df = None
         self.ext = ""
         self.modelo = None
+        self.datos_modelo: DatosModelo | None = None
         self.metricas = None
         self.formula = ""
 
@@ -316,6 +331,13 @@ class Gui:
                         self.tabla_metricas = ui.html("", tag="div", sanitize=False).classes("tabla-metricas")
                         ui.html("Guardar modelo", tag="button", sanitize=False).classes("boton").on("click", self.guardar_modelo_archivo)
                         self.contenedor_grafico = ui.element("div").classes("grafico-modelo")
+                        self.entrada_descripcion_modelo = ui.textarea(
+                            label="Descripción (opcional)",
+                            placeholder="¿En qué consiste este modelo y para qué se creó?",
+                        ).props("outlined").classes("descripcion-modelo")
+                        self.entrada_descripcion_modelo.on_value_change(
+                            self.actualizar_descripcion_modelo
+                        )
                     self.resultado_modelo.set_visibility(False)
                 self.contenedor_modelo.set_visibility(False)
 
@@ -687,18 +709,30 @@ class Gui:
         -------
         None.
         """
+        self.modelo = None
+        self.datos_modelo = None
+        self.entrada_descripcion_modelo.value = ""
+        self.entrada_descripcion_modelo.update()
+
         try:
             self.modelo = entrenar_modelo(self.x_train, self.y_train)
             metricas = calcular_metricas(
                 self.modelo, self.x_train, self.x_test, self.y_train, self.y_test
             )
             formula = escribir_formula(self.target, self.features, self.modelo)
+            self.datos_modelo = crear_datos_modelo(
+                self.modelo, self.features, self.target, formula, metricas,
+                self.x_train, self.x_test,
+            )
             datos= datos_grafico(
                 self.modelo, self.x_train, self.x_test, self.y_train, self.y_test
             )
         except Exception as e:
             # Cualquier error: se avisa y la aplicación sigue funcionando.
             self.modelo = None
+            self.datos_modelo = None
+            self.entrada_descripcion_modelo.value = ""
+            self.entrada_descripcion_modelo.update()
             self.metricas = None
             self.formula = ""
             self.resultado_modelo.set_visibility(False)
@@ -735,6 +769,11 @@ class Gui:
 
         self.resultado_modelo.set_visibility(True)
 
+    def actualizar_descripcion_modelo(self, evento):
+        """Actualiza la descripción opcional del modelo."""
+        if self.datos_modelo is not None:
+            actualizar_descripcion(self.datos_modelo, evento.value or "")
+
     def ocultar_modelo(self):
         """Oculta el botón y borra el modelo anterior.
 
@@ -745,6 +784,9 @@ class Gui:
         self.modelo = None
         self.metricas = None
         self.modelo = None
+        self.datos_modelo = None
+        self.entrada_descripcion_modelo.value = ""
+        self.entrada_descripcion_modelo.update()
         self.resultado_modelo.set_visibility(False)
         self.contenedor_modelo.set_visibility(False)
 

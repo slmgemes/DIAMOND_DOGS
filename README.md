@@ -14,6 +14,7 @@ Esta versión incluye la carga y preparación de datos y la creación y evaluaci
 - Fórmula del modelo: Se muestra con los nombres de las columnas seleccionadas y los coeficientes redondeados a 4 decimales.
 - Métricas de evaluación: Coeficiente de determinación (R²) y error cuadrático medio (ECM), calculados en entrenamiento y en test y mostrados en una tabla.
 - Gráfico del ajuste: Integrado en la aplicación. En regresión simple muestra los puntos de entrenamiento y test junto con la recta del modelo; en regresión múltiple, los valores reales frente a los predichos junto con la recta en la que ambos coinciden.
+- Descripción del modelo: Campo de texto opcional disponible al crear el modelo para registrar en qué consiste y con qué propósito se creó. La descripción forma parte de la estructura de datos del modelo junto con sus columnas, fórmula, coeficientes y métricas, siguiendo los campos definidos en el prototipo JSON de persistencia.
 
 REQUISITOS
 
@@ -63,3 +64,4 @@ EJECUTAR APLICACIÓN
 6. En el bloque de tratamiento de valores inexistentes, escoge una estrategia de preprocesado y aplícala; el sistema permite reintentar y cambiar de opción cuantas veces sea necesario partiendo siempre de los datos originales intactos.
 
 7. Cuando no queden valores inexistentes, pulsa "Crear modelo" para entrenar el modelo y consultar su fórmula, sus métricas (R² y ECM) y el gráfico del ajuste.
+8. Si lo deseas, escribe una descripción del modelo en el campo opcional que aparece junto a los resultados.
