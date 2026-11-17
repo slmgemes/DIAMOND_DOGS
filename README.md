@@ -15,6 +15,7 @@ Esta versión incluye la carga y preparación de datos y la creación y evaluaci
 - Métricas de evaluación: Coeficiente de determinación (R²) y error cuadrático medio (ECM), calculados en entrenamiento y en test y mostrados en una tabla.
 - Gráfico del ajuste: Integrado en la aplicación. En regresión simple muestra los puntos de entrenamiento y test junto con la recta del modelo; en regresión múltiple, los valores reales frente a los predichos junto con la recta en la que ambos coinciden.
 - Descripción del modelo: Campo de texto opcional disponible al crear el modelo para registrar en qué consiste y con qué propósito se creó. La descripción forma parte de la estructura de datos del modelo junto con sus columnas, fórmula, coeficientes y métricas, siguiendo los campos definidos en el prototipo JSON de persistencia.
+- Carga de modelos: Permite abrir archivos `.model.json`, consultar la fórmula, las columnas, las métricas y la descripción, y modificarla y guardar de nuevo el modelo sin volver a crearlo.
 
 REQUISITOS
 
@@ -55,7 +56,7 @@ EJECUTAR APLICACIÓN
 
     uv run python src/diamond_dogs/interfaz.py
 
-3. Interactúa con el botón de selección de archivos para cargar un dataset.
+3. Usa "Seleccionar archivo" para cargar un dataset o "Cargar modelo" para consultar un modelo `.model.json` guardado.
 
 4. Selecciona las columnas de entrada y salida correspondientes y confirma la selección.
 
@@ -65,3 +66,4 @@ EJECUTAR APLICACIÓN
 
 7. Cuando no queden valores inexistentes, pulsa "Crear modelo" para entrenar el modelo y consultar su fórmula, sus métricas (R² y ECM) y el gráfico del ajuste.
 8. Si lo deseas, escribe una descripción del modelo en el campo opcional que aparece junto a los resultados.
+9. Para un modelo cargado, puedes modificar su descripción y guardarlo de nuevo.

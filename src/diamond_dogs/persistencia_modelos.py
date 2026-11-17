@@ -1,5 +1,7 @@
 import json
+import math
 from pathlib import Path
+from diamond_dogs.crear_modelo import DatosModelo
 
 EXTENSION = ".model.json"
 CAMPOS = (
@@ -100,3 +102,83 @@ def guardar_modelo(ruta, datos_modelo):
         raise ValueError(f"No se pudo guardar el modelo: {e}") from e
 
     return ruta
+
+
+def cargar_modelo(ruta: str | Path) -> DatosModelo:
+    """Carga y valida un archivo de modelo en formato JSON.
+
+    Raises
+    ------
+    ValueError
+        Si el archivo no se puede leer o no contiene un modelo compatible.
+    """
+    ruta = Path(ruta)
+    try:
+        datos = json.loads(ruta.read_text(encoding="utf-8"))
+    except FileNotFoundError as e:
+        raise ValueError(f"El archivo no existe: {ruta}") from e
+    except PermissionError as e:
+        raise ValueError(f"No hay permisos para leer el archivo: {ruta}") from e
+    except (OSError, UnicodeError, json.JSONDecodeError) as e:
+        raise ValueError(f"No se pudo cargar el modelo: {e}") from e
+
+    if not isinstance(datos, dict):
+        raise ValueError("El archivo no contiene un objeto de modelo válido.")
+
+    faltan = [campo for campo in CAMPOS if campo not in datos]
+    if faltan:
+        raise ValueError("Faltan campos en el modelo: " + ", ".join(faltan) + ".")
+    if (
+        not isinstance(datos["version_formato"], int)
+        or isinstance(datos["version_formato"], bool)
+        or datos["version_formato"] != 1
+    ):
+        raise ValueError("La versión del formato del modelo no es compatible.")
+    if not isinstance(datos["descripcion"], str):
+        raise ValueError("La descripción del modelo debe ser texto.")
+    if (
+        not isinstance(datos["columnas_entrada"], list)
+        or not datos["columnas_entrada"]
+        or not all(isinstance(columna, str) and columna for columna in datos["columnas_entrada"])
+        or len(set(datos["columnas_entrada"])) != len(datos["columnas_entrada"])
+    ):
+        raise ValueError("Las columnas de entrada del modelo no son válidas.")
+    if not isinstance(datos["columna_salida"], str) or not datos["columna_salida"]:
+        raise ValueError("La columna de salida del modelo no es válida.")
+    if not isinstance(datos["formula"], str):
+        raise ValueError("La fórmula del modelo debe ser texto.")
+
+    coeficientes = datos["coeficientes"]
+    if (
+        not isinstance(coeficientes, list)
+        or len(coeficientes) != len(datos["columnas_entrada"])
+        or not all(_es_numero_finito(valor) for valor in coeficientes)
+        or not _es_numero_finito(datos["termino_independiente"])
+    ):
+        raise ValueError("Los coeficientes del modelo no son válidos.")
+
+    metricas = datos["metricas"]
+    if not isinstance(metricas, dict) or set(metricas) != {"entrenamiento", "test"}:
+        raise ValueError("Las métricas del modelo no son válidas.")
+    for conjunto in metricas.values():
+        if (
+            not isinstance(conjunto, dict)
+            or not isinstance(conjunto.get("filas"), int)
+            or isinstance(conjunto.get("filas"), bool)
+            or conjunto["filas"] < 0
+            or not _es_numero_finito(conjunto.get("ecm"))
+            or conjunto["ecm"] < 0
+            or not _es_numero_finito(conjunto.get("r2"))
+        ):
+            raise ValueError("Las métricas del modelo no son válidas.")
+
+    return {campo: datos[campo] for campo in CAMPOS}
+
+
+def _es_numero_finito(valor: object) -> bool:
+    if not isinstance(valor, (int, float)) or isinstance(valor, bool):
+        return False
+    try:
+        return math.isfinite(valor)
+    except OverflowError:
+        return False

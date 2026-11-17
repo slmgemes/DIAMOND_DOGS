@@ -16,7 +16,13 @@ from diamond_dogs.crear_modelo import (
     entrenar_modelo,
     escribir_formula,
 )
-from diamond_dogs.persistencia_modelos import EXTENSION, agregar_extension, existe_archivo, guardar_modelo
+from diamond_dogs.persistencia_modelos import (
+    EXTENSION,
+    agregar_extension,
+    cargar_modelo as leer_modelo,
+    existe_archivo,
+    guardar_modelo,
+)
 import matplotlib.pyplot as plt
 
 class Gui:
@@ -150,6 +156,8 @@ class Gui:
         Muestra el botón "Crear modelo".
     actualizar_descripcion_modelo(evento)
         Actualiza la descripción del modelo a partir del área de texto.
+    cargar_modelo_archivo()
+        Carga un modelo .model.json y muestra sus resultados.
     elegir_ruta_guardado()
         Abre el diálogo de guardado y pide confirmación si el archivo ya existe.
     guardar_modelo_archivo()
@@ -170,6 +178,9 @@ class Gui:
         self.datos_modelo: DatosModelo | None = None
         self.metricas = None
         self.formula = ""
+        self._modelo_guardado = False
+        self._descripcion_guardada = ""
+        self.ruta_modelo: Path | None = None
 
         # Contenedor principal de la aplicación.
         with ui.element("div").classes("app"):
@@ -185,6 +196,11 @@ class Gui:
                         tag="button",
                         sanitize=False
                     ).classes("boton").on("click", self.elegir_archivo)
+                    ui.html(
+                        "Cargar modelo",
+                        tag="button",
+                        sanitize=False
+                    ).classes("boton").on("click", self.cargar_modelo_archivo)
 
                     self.etiqueta_ruta = ui.html(
                         "Ningún archivo seleccionado",
@@ -318,7 +334,7 @@ class Gui:
 
                 # Contenedor del modelo: oculto hasta que se pueda crear.
                 with ui.element("div").classes("contenedor-modelo") as self.contenedor_modelo:
-                    ui.html(
+                    self.boton_crear_modelo = ui.html(
                         "Crear modelo",
                         tag="button",
                         sanitize=False
@@ -328,6 +344,7 @@ class Gui:
                     with ui.element("div").classes("resultado-modelo") as self.resultado_modelo:
                         self.etiqueta_modelo = ui.html("Modelo creado correctamente.", tag="p", sanitize=False).classes("mensaje-confirmacion")
                         self.etiqueta_formula = ui.html("", tag="p", sanitize=False).classes("formula-modelo")
+                        self.etiqueta_columnas_modelo = ui.html("", tag="p", sanitize=False)
                         self.tabla_metricas = ui.html("", tag="div", sanitize=False).classes("tabla-metricas")
                         self.contenedor_grafico = ui.element("div").classes("grafico-modelo")
                         self.entrada_descripcion_modelo = ui.textarea(
@@ -392,6 +409,13 @@ class Gui:
             # Importa el archivo mediante la clase ImportadorDatos.
             importador = ImportadorDatos(ruta_absoluta)
             df_nuevo, ext_nuevo = importador.importar()
+
+            if not self._confirmar_reemplazo_con_cambios(
+                "Se descartarán los cambios sin guardar del modelo actual. "
+                "¿Quieres cargar el nuevo dataset?"
+            ):
+                return
+
             self.df = df_nuevo
             self.ext = ext_nuevo
             self.ruta = str(ruta_absoluta)
@@ -419,6 +443,7 @@ class Gui:
         if self.df is None:
             return
 
+        self.contenedor_tabla.set_visibility(True)
         self.tabla.clear()
         #!
         if self.df.empty or len(self.df.columns) == 0:
@@ -496,6 +521,29 @@ class Gui:
         self.resultado_separacion.set_visibility(False)
         self.contenedor_preprocesado.set_visibility(False)
         self.ocultar_modelo()
+
+    def hay_cambios_sin_guardar(self):
+        """Indica si el modelo actual es nuevo o cambió desde su último guardado."""
+        return self.datos_modelo is not None and (
+            not self._modelo_guardado
+            or self.datos_modelo["descripcion"] != self._descripcion_guardada
+        )
+
+    def _confirmar_reemplazo_con_cambios(self, mensaje):
+        if not self.hay_cambios_sin_guardar():
+            return True
+
+        raiz = tk.Tk()
+        raiz.withdraw()
+        raiz.attributes("-topmost", True)
+        try:
+            return messagebox.askyesno(
+                "Cambios sin guardar",
+                mensaje,
+                parent=raiz,
+            )
+        finally:
+            raiz.destroy()
 
     def al_cambiar_target(self, _=None):
         """Quita de las features la columna elegida como salida.
@@ -728,6 +776,9 @@ class Gui:
                 self.modelo, self.features, self.target, formula, metricas,
                 self.x_train, self.x_test,
             )
+            self._modelo_guardado = False
+            self._descripcion_guardada = ""
+            self.ruta_modelo = None
             datos= datos_grafico(
                 self.modelo, self.x_train, self.x_test, self.y_train, self.y_test
             )
@@ -746,19 +797,12 @@ class Gui:
 
         self.metricas = metricas
         self.formula = formula
-        self.etiqueta_formula.set_content(escape(formula))
-        self.etiqueta_formula.set_content(escape(formula))
-        self.tabla_metricas.set_content(
-            "<table>"
-            "<tr><th>Métrica</th><th>Entrenamiento</th><th>Test</th></tr>"
-            f"<tr><td>R<sup>2</sup></td><td>{metricas['r2_train']:.4f}</td>"
-            f"<td>{metricas['r2_test']:.4f}</td></tr>"
-            f"<tr><td>ECM</td><td>{metricas['ecm_train']:,.2f}</td>"
-            f"<td>{metricas['ecm_test']:,.2f}</td></tr>"
-            "</table>"
-        )
+        self.etiqueta_modelo.set_content("Modelo creado correctamente.")
+        self.boton_crear_modelo.set_visibility(True)
+        self._mostrar_informacion_modelo()
 
         self.contenedor_grafico.clear()
+        self.contenedor_grafico.set_visibility(True)
         with self.contenedor_grafico:
             with ui.pyplot(figsize=(8, 5)).classes("grafico"):
                 plt.scatter(datos["x_train"], datos["y_train"], s=4, color="#b8893b",
@@ -772,6 +816,104 @@ class Gui:
                 plt.legend()
 
         self.resultado_modelo.set_visibility(True)
+
+    def _mostrar_informacion_modelo(self):
+        datos = self.datos_modelo
+        if datos is None:
+            return
+
+        self.etiqueta_formula.set_content(escape(datos["formula"]))
+        self.etiqueta_columnas_modelo.set_content(
+            f"Entradas: {escape(', '.join(datos['columnas_entrada']))}<br>"
+            f"Salida: {escape(datos['columna_salida'])}"
+        )
+        metricas = datos["metricas"]
+        self.tabla_metricas.set_content(
+            "<table>"
+            "<tr><th>Métrica</th><th>Entrenamiento</th><th>Test</th></tr>"
+            f"<tr><td>R<sup>2</sup></td>"
+            f"<td>{metricas['entrenamiento']['r2']:.4f}</td>"
+            f"<td>{metricas['test']['r2']:.4f}</td></tr>"
+            f"<tr><td>ECM</td>"
+            f"<td>{metricas['entrenamiento']['ecm']:,.2f}</td>"
+            f"<td>{metricas['test']['ecm']:,.2f}</td></tr>"
+            "</table>"
+        )
+        self.entrada_descripcion_modelo.value = datos["descripcion"]
+        self.entrada_descripcion_modelo.update()
+
+    def cargar_modelo_archivo(self):
+        """Pide un modelo guardado, lo valida y lo muestra en la interfaz."""
+        ruta = self.elegir_ruta_modelo()
+        if not ruta:
+            return
+
+        try:
+            datos = leer_modelo(ruta)
+        except ValueError as e:
+            ui.notify(str(e), type="negative", position="center", timeout=5000)
+            return
+
+        if not self._confirmar_reemplazo_con_cambios(
+            "Se descartarán los cambios sin guardar del modelo actual. "
+            "¿Quieres cargar el modelo seleccionado?"
+        ):
+            return
+
+        self.mostrar_modelo_cargado(datos, ruta)
+
+    def elegir_ruta_modelo(self):
+        """Abre el selector de modelos .model.json y devuelve su ruta."""
+        raiz = tk.Tk()
+        raiz.withdraw()
+        raiz.attributes("-topmost", True)
+        try:
+            return filedialog.askopenfilename(
+                title="Cargar modelo",
+                filetypes=(("Modelos de Diamond Dogs", "*" + EXTENSION),),
+                parent=raiz,
+            )
+        finally:
+            raiz.destroy()
+
+    def mostrar_modelo_cargado(self, datos: DatosModelo, ruta: str = ""):
+        """Muestra un modelo guardado sin sus secciones asociadas al dataset."""
+        self.df = None
+        self.ext = ""
+        self.ruta = ""
+        self.features = list(datos["columnas_entrada"])
+        self.target = datos["columna_salida"]
+        self.es_multiple = len(self.features) > 1
+        self.x_train = self.x_test = self.y_train = self.y_test = None
+        self.modelo = None
+        self.datos_modelo = datos
+        self.metricas = {
+            "r2_train": datos["metricas"]["entrenamiento"]["r2"],
+            "r2_test": datos["metricas"]["test"]["r2"],
+            "ecm_train": datos["metricas"]["entrenamiento"]["ecm"],
+            "ecm_test": datos["metricas"]["test"]["ecm"],
+        }
+        self.formula = datos["formula"]
+        self._modelo_guardado = True
+        self._descripcion_guardada = datos["descripcion"]
+        self.ruta_modelo = Path(ruta).resolve() if ruta else None
+
+        self.contenedor_tabla.set_visibility(False)
+        self.tabla.clear()
+        self.contenedor_seleccion.set_visibility(False)
+        self.contenedor_porcentajes.set_visibility(False)
+        self.resultado_separacion.set_visibility(False)
+        self.contenedor_preprocesado.set_visibility(False)
+        self.contenedor_grafico.clear()
+        self.contenedor_grafico.set_visibility(False)
+        self.boton_crear_modelo.set_visibility(False)
+        self.contenedor_modelo.set_visibility(True)
+        self.etiqueta_modelo.set_content("Modelo cargado correctamente.")
+        self._mostrar_informacion_modelo()
+        self.resultado_modelo.set_visibility(True)
+        self.etiqueta_ruta.set_content(
+            "Modelo cargado: " + escape(str(ruta)) if ruta else "Modelo cargado"
+        )
 
     def actualizar_descripcion_modelo(self, evento):
         """Actualiza la descripción opcional del modelo."""
@@ -789,8 +931,12 @@ class Gui:
         self.metricas = None
         self.modelo = None
         self.datos_modelo = None
+        self._modelo_guardado = False
+        self._descripcion_guardada = ""
+        self.ruta_modelo = None
         self.entrada_descripcion_modelo.value = ""
         self.entrada_descripcion_modelo.update()
+        self.boton_crear_modelo.set_visibility(True)
         self.resultado_modelo.set_visibility(False)
         self.contenedor_modelo.set_visibility(False)
 
@@ -803,6 +949,7 @@ class Gui:
         """
         self.ocultar_modelo()
         self.contenedor_modelo.set_visibility(True)
+        self.boton_crear_modelo.set_visibility(True)
 
     def elegir_ruta_guardado(self):
         """Abre el diálogo de guardado y pide confirmación si el archivo ya existe.
@@ -824,6 +971,8 @@ class Gui:
                 defaultextension=EXTENSION,
                 filetypes=(("Modelos de Diamond Dogs", "*" + EXTENSION),),
                 confirmoverwrite=False,
+                initialdir=str(self.ruta_modelo.parent) if self.ruta_modelo else "",
+                initialfile=self.ruta_modelo.name if self.ruta_modelo else "",
             )
             if not ruta:
                 return ""
@@ -849,7 +998,7 @@ class Gui:
         -------
         None.
         """
-        if self.modelo is None:
+        if self.datos_modelo is None:
             return
 
         if not self.datos_modelo["descripcion"].strip():
@@ -883,6 +1032,9 @@ class Gui:
 
         ui.notify(f"Modelo guardado en: {ruta_guardada}", type="positive",
                   position="center", timeout=5000)
+        self._modelo_guardado = True
+        self._descripcion_guardada = self.datos_modelo["descripcion"]
+        self.ruta_modelo = Path(ruta_guardada).resolve()
 
 def main():
     """Configura la página principal e inicia la aplicación.
