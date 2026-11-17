@@ -7,7 +7,13 @@ from diamond_dogs.crear_modelo import (
     actualizar_descripcion, calcular_metricas, crear_datos_modelo,
     entrenar_modelo, escribir_formula,
 )
-from diamond_dogs.persistencia_modelos import (EXTENSION, agregar_extension, existe_archivo, guardar_modelo)
+from diamond_dogs.persistencia_modelos import (
+    EXTENSION,
+    agregar_extension,
+    cargar_modelo,
+    existe_archivo,
+    guardar_modelo,
+)
 
 ENTRADAS = ["edad", "habitaciones"]
 SALIDA = "precio"
@@ -66,6 +72,64 @@ def test_archivo_contiene_toda_la_informacion(tmp_path, modelo_entrenado):
     assert guardado["coeficientes"] == pytest.approx(m["modelo"].coef_[0].tolist())
     assert guardado["termino_independiente"] == pytest.approx(float(m["modelo"].intercept_[0]))
     assert set(guardado["metricas"]) == {"entrenamiento", "test"}
+
+def test_carga_modelo_desde_ruta_con_caracteres_unicode(tmp_path, modelo_entrenado):
+    carpeta = tmp_path / "carpeta con ñ y tildes áé"
+    carpeta.mkdir()
+    ruta = guardar_modelo(carpeta / "modelo año", modelo_entrenado["datos"])
+
+    assert cargar_modelo(ruta) == modelo_entrenado["datos"]
+    assert cargar_modelo(ruta)["descripcion"] == ""
+
+def test_guardar_modelo_cargado_conserva_datos_tras_editar_descripcion(
+    tmp_path, modelo_entrenado
+):
+    ruta = guardar_modelo(tmp_path / "modelo", modelo_entrenado["datos"])
+    cargado = cargar_modelo(ruta)
+    resto_original = {
+        campo: valor for campo, valor in cargado.items() if campo != "descripcion"
+    }
+
+    actualizar_descripcion(cargado, "Descripción modificada")
+    guardar_modelo(ruta, cargado)
+    guardado = cargar_modelo(ruta)
+
+    assert guardado["descripcion"] == "Descripción modificada"
+    assert {campo: valor for campo, valor in guardado.items() if campo != "descripcion"} == resto_original
+
+def test_carga_modelo_rechaza_json_no_valido(tmp_path):
+    ruta = tmp_path / "modelo.model.json"
+    ruta.write_text("{", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="No se pudo cargar"):
+        cargar_modelo(ruta)
+
+def test_carga_modelo_rechaza_coeficientes_incompatibles(tmp_path, modelo_entrenado):
+    datos = dict(modelo_entrenado["datos"])
+    datos["coeficientes"] = [1.0]
+    ruta = tmp_path / "modelo.model.json"
+    ruta.write_text(json.dumps(datos), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="coeficientes"):
+        cargar_modelo(ruta)
+
+def test_carga_modelo_rechaza_campos_ausentes(tmp_path, modelo_entrenado):
+    datos = dict(modelo_entrenado["datos"])
+    del datos["formula"]
+    ruta = tmp_path / "modelo.model.json"
+    ruta.write_text(json.dumps(datos), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="formula"):
+        cargar_modelo(ruta)
+
+def test_carga_modelo_rechaza_coeficiente_fuera_de_rango(tmp_path, modelo_entrenado):
+    datos = dict(modelo_entrenado["datos"])
+    datos["coeficientes"] = [10**400, 1.0]
+    ruta = tmp_path / "modelo.model.json"
+    ruta.write_text(json.dumps(datos), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="coeficientes"):
+        cargar_modelo(ruta)
 
 def test_archivo_no_contiene_datos_ni_graficos(tmp_path, modelo_entrenado):
     """Comprueba que solo se guardan los campos documentados, aunque haya más."""
@@ -134,7 +198,7 @@ def test_con_el_archivo_se_pueden_hacer_predicciones(tmp_path, modelo_entrenado)
     """Comprueba que el archivo basta para predecir sin el dataset original."""
     m = modelo_entrenado
     ruta = guardar_modelo(tmp_path / "modelo", m["datos"])
-    guardado = json.loads(ruta.read_text(encoding="utf-8"))
+    guardado = cargar_modelo(ruta)
 
     x = m["x_test"][guardado["columnas_entrada"]].to_numpy()
     prediccion = x @ np.array(guardado["coeficientes"]) + guardado["termino_independiente"]
