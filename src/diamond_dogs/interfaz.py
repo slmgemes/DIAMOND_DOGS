@@ -4,6 +4,7 @@ from pathlib import Path
 from tkinter import filedialog, messagebox
 from nicegui import  ui
 from diamond_dogs.importador import ImportadorDatos
+from diamond_dogs.prediccion import prediccion
 from diamond_dogs.seleccion import REGRESION_MULTIPLE, validar_seleccion, es_regresion_multiple, obtener_columnas_disponibles
 from diamond_dogs.separacion_datos import separar_datos
 from diamond_dogs.preprocesado import identificar_nulos, eliminar_nulos, rellenar_media, rellenar_mediana, rellenar_constante
@@ -127,6 +128,14 @@ class Gui:
         Contenedor del gráfico del ajuste.
     entrada_descripcion_modelo : Element
         Área de texto para la descripción opcional del modelo.
+    contenedor_prediccion : Element
+        Contenedor de la sección de predicción.
+    campos_prediccion : Element
+        Contenedor de los campos de entrada de la predicción.
+    boton_predecir : Element
+        Botón "Realizar predicción".
+    resultado_prediccion : Element
+        Resultado de la predicción, con el formato <salida> = <valor>.
 
     Methods
     -------
@@ -162,6 +171,10 @@ class Gui:
         Abre el diálogo de guardado y pide confirmación si el archivo ya existe.
     guardar_modelo_archivo()
         Pide dónde guardar el modelo y lo guarda en un archivo.
+    crear_campos_prediccion()
+        Crea un campo de entrada por cada columna de entrada del modelo.
+    predecir_valor()
+        Calcula la predicción con los valores escritos y muestra el resultado.
     """
 
     def __init__(self):
@@ -181,6 +194,7 @@ class Gui:
         self._modelo_guardado = False
         self._descripcion_guardada = ""
         self.ruta_modelo: Path | None = None
+        self.campos=[]
 
         # Contenedor principal de la aplicación.
         with ui.element("div").classes("app"):
@@ -188,7 +202,7 @@ class Gui:
             ui.html("Diamond Dogs", tag="h2", sanitize=False).classes("titulo")
 
             # Contenedor para seleccionar el archivo y mostrar los datos.
-            with ui.element("div").classes("importar"):
+            with ui.element("div").classes("importar"):#
 
                 with ui.element("div").classes("fila-archivo"):
                     ui.html(
@@ -361,6 +375,26 @@ class Gui:
                         ).classes("boton").on("click", self.guardar_modelo_archivo)
                     self.resultado_modelo.set_visibility(False)
                 self.contenedor_modelo.set_visibility(False)
+
+            #contenedor de prediccion
+            # Contenedor de la predicción: oculto hasta que haya un modelo.
+                with ui.element("div").classes("contenedor-prediccion") as self.contenedor_prediccion:
+
+                    # Aquí se crean los campos de entrada, uno por cada columna del modelo.
+                    self.campos_prediccion = ui.element("div").classes("campos-prediccion")
+                    
+
+                    self.boton_predecir = ui.html(
+                        "Realizar predicción",
+                        tag="button",
+                        sanitize=False
+                    ).classes("boton").on("click", self.predecir_valor)
+
+                    self.resultado_prediccion = ui.html(
+                        "", tag="p", sanitize=False
+                    ).classes("mensaje-confirmacion resultado-prediccion")
+                    self.contenedor_prediccion.set_visibility(False)
+
 
     def elegir_ruta(self):
         """Abre el selector de archivos del sistema.
@@ -791,6 +825,7 @@ class Gui:
             self.metricas = None
             self.formula = ""
             self.resultado_modelo.set_visibility(False)
+            self.contenedor_prediccion.set_visibility(False)
             ui.notify(f"No se pudo crear el modelo: {e}", type="negative",
                     position="center", timeout=5000)
             return
@@ -814,8 +849,9 @@ class Gui:
                 plt.xlabel(datos["eje_x"])
                 plt.ylabel(datos["eje_y"])
                 plt.legend()
-
+        self.crear_campos_prediccion()
         self.resultado_modelo.set_visibility(True)
+        self.contenedor_prediccion.set_visibility(True)
 
     def _mostrar_informacion_modelo(self):
         datos = self.datos_modelo
@@ -861,6 +897,8 @@ class Gui:
             return
 
         self.mostrar_modelo_cargado(datos, ruta)
+        self.crear_campos_prediccion()
+        self.contenedor_prediccion.set_visibility(True)
 
     def elegir_ruta_modelo(self):
         """Abre el selector de modelos .model.json y devuelve su ruta."""
@@ -939,6 +977,7 @@ class Gui:
         self.boton_crear_modelo.set_visibility(True)
         self.resultado_modelo.set_visibility(False)
         self.contenedor_modelo.set_visibility(False)
+        self.contenedor_prediccion.set_visibility(False)
 
     def mostrar_boton_modelo(self):
         """Muestra el botón para crear un modelo nuevo, sin resultados anteriores.
@@ -1035,6 +1074,43 @@ class Gui:
         self._modelo_guardado = True
         self._descripcion_guardada = self.datos_modelo["descripcion"]
         self.ruta_modelo = Path(ruta_guardada).resolve()
+
+    def crear_campos_prediccion(self):
+        """Crea un campo de entrada por cada columna de entrada del modelo.
+
+        Borra los campos y el resultado de la predicción anterior.
+
+        Returns
+        -------
+        None.
+        """
+        self.campos_prediccion.clear()
+        self.resultado_prediccion.set_content("")
+        self.campos = []
+
+        with self.campos_prediccion:
+            for columna in self.datos_modelo["columnas_entrada"]:
+                self.campos.append( ui.input(label=columna).props("outlined").classes("entrada-prediccion") )
+                
+
+    def predecir_valor(self):
+        """Predice un valor usando el modelo creado y los datos ingresados por el usuario.
+
+        Returns
+        -------
+        None.
+        """
+        valores_usuario=[campo.value for campo in self.campos]
+        
+        try:
+            resultado = prediccion(self.datos_modelo, valores_usuario)
+        except ValueError as e:
+            self.resultado_prediccion.set_content("")
+            ui.notify(str(e), type="negative", position="center", timeout=5000)
+            return
+
+        salida = self.datos_modelo["columna_salida"]
+        self.resultado_prediccion.set_content(escape(f"{salida} = {resultado:.4f}"))
 
 def main():
     """Configura la página principal e inicia la aplicación.
