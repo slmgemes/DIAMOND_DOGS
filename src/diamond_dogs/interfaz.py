@@ -2,7 +2,7 @@ import tkinter as tk
 from html import escape
 from pathlib import Path
 from tkinter import filedialog, messagebox
-from nicegui import  ui
+from nicegui import run, ui
 from diamond_dogs.importador import ImportadorDatos
 from diamond_dogs.prediccion import prediccion
 from diamond_dogs.seleccion import REGRESION_MULTIPLE, validar_seleccion, es_regresion_multiple, obtener_columnas_disponibles
@@ -24,6 +24,8 @@ from diamond_dogs.persistencia_modelos import (
     existe_archivo,
     guardar_modelo,
 )
+from diamond_dogs.flujo_de_trabajo import calcular_flujo, html_estado, html_pasos, lineas_estado
+from diamond_dogs.tabla_datos import preparar_tabla
 import matplotlib.pyplot as plt
 
 class Gui:
@@ -72,6 +74,32 @@ class Gui:
         Métricas del modelo creado, o None si todavía no hay ninguno.
     formula : str
         Fórmula del modelo creado, o una cadena vacía si todavía no hay ninguno.
+    origen_modelo : str
+        "creado" o "cargado" según cómo se obtuvo el modelo actual, o None si no hay ninguno.
+    indicacion_inicio : Element
+        Indicación de cómo empezar, visible mientras no haya datos ni modelo.
+    contenedor_pasos : Element
+        Barra con los pasos del flujo y su estado.
+    barra_estado : Element
+        Barra de estado: archivo, modelo y cambios sin guardar.
+    boton_seleccionar_archivo, boton_cargar_modelo : Element
+        Botones del paso 1.
+    boton_confirmar_seleccion : Element
+        Botón del paso 2.
+    boton_separar : Element
+        Botón del paso 3.
+    boton_preprocesar : Element
+        Botón del paso 4.
+    etiqueta_prediccion_vacia : Element
+        Indicación que se muestra mientras no hay modelo para predecir.
+    ocupado : bool
+        True mientras hay una operación larga en curso (carga de un archivo).
+    indicador_carga : Element
+        Indicador de operación en curso, con un círculo de carga y un texto.
+    etiqueta_carga : Element
+        Texto del indicador de operación en curso.
+    boton_guardar : Element
+        Botón "Guardar modelo".
     etiqueta_ruta : Element
         Texto con la ruta del archivo seleccionado.
     contenedor_tabla : Element
@@ -142,8 +170,12 @@ class Gui:
     elegir_ruta()
         Abre el selector de archivos del sistema.
     elegir_archivo()
-        Selecciona e importa un archivo.
-    mostrar_datos_en_tabla()
+        Selecciona e importa un archivo sin bloquear la interfaz.
+    iniciar_operacion(texto)
+        Muestra el indicador de operación en curso y bloquea los botones.
+    terminar_operacion()
+        Oculta el indicador de operación en curso y desbloquea los botones.
+    mostrar_datos_en_tabla(datos_tabla)
         Muestra los datos importados en la tabla.
     actualizar_selectores()
         Carga las columnas del archivo en los selectores.
@@ -195,22 +227,39 @@ class Gui:
         self._descripcion_guardada = ""
         self.ruta_modelo: Path | None = None
         self.campos=[]
+        self.origen_modelo = None
+        self.features = []
+        self.target = None
+        self.es_multiple = False
+        self.x_train = self.x_test = self.y_train = self.y_test = None
+        self.ocupado = False
+        
 
         # Contenedor principal de la aplicación.
         with ui.element("div").classes("app"):
 
             ui.html("Diamond Dogs", tag="h2", sanitize=False).classes("titulo")
 
+            self.indicacion_inicio = ui.html(
+                "<b>Para empezar:</b> carga un dataset para crear un modelo, "
+                "o carga un modelo guardado para consultarlo y hacer predicciones.",
+                tag="p", sanitize=False
+                ).classes("indicacion-inicio")
+
+            self.contenedor_pasos = ui.html("", tag="div", sanitize=False).classes("pasos")
+            self.barra_estado = ui.html("", tag="div", sanitize=False).classes("barra-estado")
+
             # Contenedor para seleccionar el archivo y mostrar los datos.
-            with ui.element("div").classes("importar"):#
+            with ui.element("div").classes("importar"):
+                ui.html("1. Cargar datos", tag="h3", sanitize=False).classes("titulo-paso")
 
                 with ui.element("div").classes("fila-archivo"):
-                    ui.html(
+                    self.boton_seleccionar_archivo = ui.html(
                         "Seleccionar archivo",
                         tag="button",
                         sanitize=False
                     ).classes("boton").on("click", self.elegir_archivo)
-                    ui.html(
+                    self.boton_cargar_modelo = ui.html(
                         "Cargar modelo",
                         tag="button",
                         sanitize=False
@@ -221,6 +270,11 @@ class Gui:
                         tag="span",
                         sanitize=False
                     ).classes("ruta")
+
+                with ui.element("div").classes("indicador-carga") as self.indicador_carga:
+                    ui.spinner(size="lg", color="primary")
+                    self.etiqueta_carga = ui.html("", tag="span", sanitize=False)
+                self.indicador_carga.set_visibility(False)
 
                 # Contenedor de la tabla que mostrará los datos importados.
                 with ui.element("div").classes(
@@ -237,6 +291,7 @@ class Gui:
                 with ui.element("div").classes(
                     "seleccion-columnas formulario"
                 ) as self.contenedor_seleccion:
+                    ui.html("2. Seleccionar columnas", tag="h3", sanitize=False).classes("titulo-paso")
                     self.sel_features = ui.select(
                         [],
                         label="Columnas de entrada",
@@ -249,7 +304,7 @@ class Gui:
                         value=None,
                     ).props("outlined").classes("selector")
                     self.sel_target.on_value_change(self.al_cambiar_target)
-                    ui.html(
+                    self.boton_confirmar_seleccion = ui.html(
                         "Confirmar selección",
                         tag="button",
                         sanitize=False
@@ -264,6 +319,7 @@ class Gui:
                 with ui.element("div").classes(
                     "porcentajes"
                 ) as self.contenedor_porcentajes:
+                    ui.html("3. Separar datos", tag="h3", sanitize=False).classes("titulo-paso")
                     # Porcentaje de test: lo escribe el usuario.
                     self.entrada_test = ui.number(
                         label="Test (%)", value=20
@@ -280,12 +336,11 @@ class Gui:
                         label="Semilla", value=42
                     ).props("outlined").classes("entrada-semilla")
 
-                    ui.html(
+                    self.boton_separar = ui.html(
                         "Separar datos",
                         tag="button",
                         sanitize=False
                     ).classes("boton").on("click", self.separacion_datos)
-
 
                     self.contenedor_porcentajes.set_visibility(False)
 
@@ -312,7 +367,7 @@ class Gui:
                 with ui.element("div").classes(
                     "contenedor-preprocesado"
                 ) as self.contenedor_preprocesado:
-                    ui.html("Tratamiento de valores inexistentes", tag="h3", sanitize=False)
+                    ui.html("4. Preprocesar: valores inexistentes", tag="h3", sanitize=False).classes("titulo-paso")
 
                     self.etiqueta_diagnostico = ui.html("", tag="div", sanitize=False)
 
@@ -334,7 +389,7 @@ class Gui:
                             self.radio_estrategia, "value", lambda v: v == "constante"
                         )
 
-                        ui.html(
+                        self.boton_preprocesar = ui.html(
                             "Aplicar preprocesado",
                             tag="button",
                             sanitize=False
@@ -348,6 +403,7 @@ class Gui:
 
                 # Contenedor del modelo: oculto hasta que se pueda crear.
                 with ui.element("div").classes("contenedor-modelo") as self.contenedor_modelo:
+                    ui.html("5. Crear modelo", tag="h3", sanitize=False).classes("titulo-paso")
                     self.boton_crear_modelo = ui.html(
                         "Crear modelo",
                         tag="button",
@@ -368,7 +424,7 @@ class Gui:
                         self.entrada_descripcion_modelo.on_value_change(
                             self.actualizar_descripcion_modelo
                         )
-                        ui.html(
+                        self.boton_guardar = ui.html(
                             "Guardar modelo",
                             tag="button",
                             sanitize=False
@@ -379,6 +435,14 @@ class Gui:
             #contenedor de prediccion
             # Contenedor de la predicción: oculto hasta que haya un modelo.
                 with ui.element("div").classes("contenedor-prediccion") as self.contenedor_prediccion:
+
+                    ui.html("6. Predecir", tag="h3", sanitize=False).classes("titulo-paso")
+
+                    self.etiqueta_prediccion_vacia = ui.html(
+                        "Crea o carga un modelo para poder hacer una predicción.",
+                        tag="p",
+                        sanitize=False
+                    ).classes("indicacion-paso")
 
                     # Aquí se crean los campos de entrada, uno por cada columna del modelo.
                     self.campos_prediccion = ui.element("div").classes("campos-prediccion")
@@ -395,6 +459,158 @@ class Gui:
                     ).classes("mensaje-confirmacion resultado-prediccion")
                     self.contenedor_prediccion.set_visibility(False)
 
+        self.actualizar_estado()
+
+    def actualizar_estado(self):
+        """Actualiza los pasos, los botones habilitados y la barra de estado.
+
+        Se llama cada vez que cambia algo del flujo: el dataset, la selección,
+        la separación, el preprocesado o el modelo. Los pasos que todavía no se
+        pueden realizar siguen visibles, pero con sus botones y campos
+        deshabilitados.
+
+        Returns
+        -------
+        None.
+        """
+        hay_datos = self.df is not None and not self.df.empty
+        datos_separados = self.x_train is not None
+        datos_sin_nulos = datos_separados and not identificar_nulos(
+            self.x_train, self.x_test, self.y_train, self.y_test
+        )["nulos"]
+        hay_modelo = self.datos_modelo is not None
+
+        pasos = calcular_flujo(
+            hay_datos=hay_datos,
+            seleccion_confirmada=bool(self.features) and self.target is not None,
+            datos_separados=datos_separados,
+            datos_sin_nulos=datos_sin_nulos,
+            hay_modelo=hay_modelo,
+            modelo_cargado=self.origen_modelo == "cargado",
+            ocupado=self.ocupado,
+        )
+        disponible = [paso["disponible"] for paso in pasos]
+        self._habilitar(self.boton_seleccionar_archivo, disponible[0])
+        self._habilitar(self.boton_cargar_modelo, disponible[0])
+        self._habilitar(self.boton_guardar, disponible[5])
+
+        self.indicacion_inicio.set_visibility(not hay_datos and not hay_modelo)
+        self.contenedor_pasos.set_content(html_pasos(pasos))
+
+        # Paso 2: seleccionar columnas.
+        self.sel_features.set_enabled(disponible[1])
+        self.sel_target.set_enabled(disponible[1])
+        self._habilitar(self.boton_confirmar_seleccion, disponible[1])
+
+        # Paso 3: separar datos (el porcentaje de entrenamiento siempre está deshabilitado).
+        self.entrada_test.set_enabled(disponible[2])
+        self.entrada_semilla.set_enabled(disponible[2])
+        self._habilitar(self.boton_separar, disponible[2])
+
+        # Paso 4: preprocesar.
+        self.radio_estrategia.set_enabled(disponible[3])
+        self.entrada_constante.set_enabled(disponible[3])
+        self._habilitar(self.boton_preprocesar, disponible[3])
+        if not datos_separados:
+            self.resultado_separacion.set_visibility(False)
+            self.bloque_opciones_nulos.set_visibility(True)
+            self.etiqueta_diagnostico.set_content("")
+            self.etiqueta_resultado_preprocesado.set_content("")
+
+        # Paso 5: crear modelo.
+        self._habilitar(self.boton_crear_modelo, disponible[4])
+
+        # Paso 6: predecir.
+        if not hay_modelo:
+            self.campos_prediccion.clear()
+            self.campos = []
+            self.resultado_prediccion.set_content("")
+        for campo in self.campos:
+            campo.set_enabled(disponible[5])
+        self._habilitar(self.boton_predecir, disponible[5])
+        self.etiqueta_prediccion_vacia.set_visibility(not hay_modelo)
+
+        self._actualizar_barra_estado()
+
+    def _actualizar_barra_estado(self):
+        """Actualiza la barra de estado: archivo, modelo y cambios sin guardar.
+
+        Returns
+        -------
+        None.
+        """
+        hay_datos = self.df is not None and not self.df.empty
+        lineas = lineas_estado(
+            nombre_archivo=Path(self.ruta).name if hay_datos and self.ruta else None,
+            filas=len(self.df) if hay_datos else 0,
+            origen_modelo=self.origen_modelo,
+            nombre_modelo=self.ruta_modelo.name if self.ruta_modelo else None,
+            cambios_sin_guardar=self.hay_cambios_sin_guardar(),
+        )
+        self.barra_estado.set_content(html_estado(lineas))
+
+    def _habilitar(self, boton, habilitado):
+        """Habilita o deshabilita un botón (se ve apagado y no responde al clic).
+
+        Parameters
+        ----------
+        boton : Element
+            Botón que se habilita o se deshabilita.
+        habilitado : bool
+            True para habilitarlo y False para deshabilitarlo.
+
+        Returns
+        -------
+        None.
+        """
+        if habilitado:
+            boton.props(remove="disabled")
+        else:
+            boton.props("disabled")
+
+    def iniciar_operacion(self, texto):
+        """Muestra el indicador de operación en curso y bloquea los botones.
+
+        Parameters
+        ----------
+        texto : str
+            Texto que explica qué se está haciendo.
+
+        Returns
+        -------
+        None.
+        """
+        self.ocupado = True
+        self.etiqueta_carga.set_content(escape(texto))
+        self.indicador_carga.set_visibility(True)
+        self.actualizar_estado()
+
+    def terminar_operacion(self):
+        """Oculta el indicador de operación en curso y desbloquea los botones.
+
+        Returns
+        -------
+        None.
+        """
+        self.ocupado = False
+        self.indicador_carga.set_visibility(False)
+        self.actualizar_estado()
+
+    def mostrar_exito(self, mensaje: str):
+        """Muestra un mensaje de éxito estandarizado."""
+        ui.notify(mensaje, type="positive", position="center", timeout=4000)
+
+    def mostrar_aviso(self, mensaje: str):
+        """Muestra un mensaje de advertencia o aviso estandarizado."""
+        ui.notify(mensaje, type="warning", position="center", timeout=5000)
+
+    def mostrar_error(self, mensaje: str, solucion: str = ""):
+        """Muestra un mensaje de error limpio y comprensible, sin trazas técnicas."""
+        texto_completo = f"Error: {mensaje}"
+        if solucion:
+            texto_completo += f"\n\nSolución: {solucion}"
+        
+        ui.notify(texto_completo, type="negative", position="center", timeout=8000, multi_line=True)
 
     def elegir_ruta(self):
         """Abre el selector de archivos del sistema.
@@ -424,25 +640,42 @@ class Gui:
         raiz.destroy()
         return ruta
 
-    def elegir_archivo(self):
-        """Selecciona un archivo, lo importa y muestra sus datos.
+    async def elegir_archivo(self):
+        """Selecciona un archivo, lo importa en segundo plano y muestra sus datos.
+
+        La lectura del archivo y la preparación de la tabla se hacen en otro hilo,
+        de modo que la ventana sigue respondiendo con archivos grandes. Mientras
+        dura, se muestra un indicador y los botones quedan bloqueados.
 
         Returns
         -------
         None.
         """
-        # Ejecuta el selector de archivos sin bloquear el bucle de eventos.
+        if self.ocupado:
+            return
+
         ruta = self.elegir_ruta()
 
         if not ruta:
             return
 
+        self.iniciar_operacion(
+            "Cargando el archivo. Con archivos grandes puede tardar unos segundos..."
+        )
         try:
-            ruta_absoluta = Path(ruta).resolve()
+            try:
+                ruta_absoluta = Path(ruta).resolve()
 
-            # Importa el archivo mediante la clase ImportadorDatos.
-            importador = ImportadorDatos(ruta_absoluta)
-            df_nuevo, ext_nuevo = importador.importar()
+                # Importa el archivo mediante la clase ImportadorDatos, en segundo plano.
+                importador = ImportadorDatos(ruta_absoluta)
+                df_nuevo, ext_nuevo = await run.io_bound(importador.importar)
+                datos_tabla = await run.io_bound(preparar_tabla, df_nuevo)
+            except Exception:
+                self.mostrar_error(
+                    "El archivo seleccionado no tiene un formato válido o está vacío.",
+                    "Comprueba que sea un archivo CSV, Excel (.xlsx/.xls) o una base de datos SQLite con datos correctos."
+                )
+                return
 
             if not self._confirmar_reemplazo_con_cambios(
                 "Se descartarán los cambios sin guardar del modelo actual. "
@@ -457,29 +690,31 @@ class Gui:
             # Muestra los datos importados en la tabla de la interfaz.
             self.etiqueta_ruta.set_content(escape(self.ruta))
             self.actualizar_selectores()
-            self.mostrar_datos_en_tabla()
+            self.mostrar_datos_en_tabla(datos_tabla)
+        finally:
+            self.terminar_operacion()
 
-        except Exception as e:
-            error_str = str(e)
-            
-            texto_error = error_str.split(":")[0] if ":" in error_str else error_str
-            
-            ui.notify(texto_error, type="negative", position="center", timeout=5000)
+    def mostrar_datos_en_tabla(self, datos_tabla=None):
+        """Muestra todos los datos del DataFrame en una tabla con scroll virtual.
 
-    def mostrar_datos_en_tabla(self):
-        """Muestra todos los datos del DataFrame en una tabla con scroll.
+        La tabla (AG Grid) solo dibuja las filas que se ven en cada momento y las
+        actualiza al desplazarse, pero el usuario puede recorrer todas las filas.
+
+        Parameters
+        ----------
+        datos_tabla : dict, optional
+            Datos ya preparados con preparar_tabla. Si no se dan, se preparan aquí.
 
         Returns
         -------
         None.
         """
-        #!
         if self.df is None:
             return
 
         self.contenedor_tabla.set_visibility(True)
         self.tabla.clear()
-        #!
+
         if self.df.empty or len(self.df.columns) == 0:
             self._mostrar_mensaje_vacio(
                 "El archivo no contiene datos o columnas para mostrar."
@@ -487,15 +722,23 @@ class Gui:
             self.contenedor_seleccion.set_visibility(False)
             return
 
-        # Tabla con scroll virtual: solo dibuja las filas que se ven.
+        if datos_tabla is None:
+            datos_tabla = preparar_tabla(self.df)
+
         with self.tabla:
-            ui.aggrid.from_pandas(self.df.astype(str).fillna(""),                
+            ui.aggrid(
+                {
+                    "columnDefs": datos_tabla["columnDefs"],
+                    "rowData": datos_tabla["rowData"],
+                    "defaultColDef": {"flex": 1, "minWidth": 200},
+                    "animateRows": False,
+                },
                 auto_size_columns=False,
-                options={"defaultColDef": {"flex": 1, "minWidth": 200}},).classes("rejilla")
+            ).classes("rejilla")
 
         self.mensaje_vacio.set_visibility(False)
 
-    #!
+
     def _mostrar_mensaje_vacio(self, mensaje):
         """Muestra un mensaje dentro del contenedor de la tabla.
 
@@ -616,9 +859,10 @@ class Gui:
             self.resultado_separacion.set_visibility(False)
             self.contenedor_preprocesado.set_visibility(False)   
             self.ocultar_modelo()
-            ui.notify(
-                "\n".join(errores), type="negative", position="center",
-                timeout=5000, multi_line=True,
+            texto_errores = "<br>".join(errores)
+            self.mostrar_error(
+                texto_errores,
+                "Selecciona una combinación válida de columnas de entrada distintas a la columna de salida."
             )
             return
 
@@ -636,6 +880,7 @@ class Gui:
         self.resultado_separacion.set_visibility(False)
         self.contenedor_preprocesado.set_visibility(False)
         self.ocultar_modelo()
+        self.actualizar_estado()
 
     def separacion_datos(self):
         """Separa los datos en entrenamiento y test y muestra el resultado.
@@ -658,7 +903,10 @@ class Gui:
             self.x_train_base = None       
             self.resultado_separacion.set_visibility(False)
             self.contenedor_preprocesado.set_visibility(False)  
-            ui.notify(str(e), type="negative", position="center", timeout=5000)
+            self.mostrar_error(
+                "El porcentaje de test introducido no es válido.",
+                "Introduce un número entre 1 y 99 para que quede espacio suficiente en el conjunto de entrenamiento."
+                )
             self.ocultar_modelo()
             return
 
@@ -713,6 +961,7 @@ class Gui:
             self.bloque_opciones_nulos.set_visibility(True)
             self.etiqueta_resultado_preprocesado.set_content("")
             self.ocultar_modelo()
+        self.actualizar_estado()
 
     def aplicar_preprocesado(self):
         """Aplica a los valores inexistentes la estrategia elegida por el usuario.
@@ -784,9 +1033,13 @@ class Gui:
                 self.ocultar_modelo()
 
             self.bloque_opciones_nulos.set_visibility(True)
+            self.actualizar_estado()
 
         except (ValueError,TypeError) as e:
-            ui.notify(str(e), type="negative", position="center", timeout=5000)
+            self.mostrar_error(
+                "Se ha producido un error al tratar los valores inexistentes.",
+                "Revisa que el valor constante introducido sea del tipo adecuado (numérico) para las columnas seleccionadas."
+            )
 
     def crear_modelo(self):
         """Crea el modelo y muestra su fórmula, sus métricas y su gráfico.
@@ -826,8 +1079,12 @@ class Gui:
             self.formula = ""
             self.resultado_modelo.set_visibility(False)
             self.contenedor_prediccion.set_visibility(False)
-            ui.notify(f"No se pudo crear el modelo: {e}", type="negative",
-                    position="center", timeout=5000)
+            self.mostrar_error(
+                "No se ha podido entrenar el modelo de regresión con los datos actuales.",
+                "Verifica que las columnas de entrada elegidas tengan varianza y contengan valores numéricos válidos."
+            )
+            self.origen_modelo = None
+            self.actualizar_estado()
             return
 
         self.metricas = metricas
@@ -852,6 +1109,8 @@ class Gui:
         self.crear_campos_prediccion()
         self.resultado_modelo.set_visibility(True)
         self.contenedor_prediccion.set_visibility(True)
+        self.origen_modelo = "creado"
+        self.actualizar_estado()
 
     def _mostrar_informacion_modelo(self):
         datos = self.datos_modelo
@@ -887,7 +1146,7 @@ class Gui:
         try:
             datos = leer_modelo(ruta)
         except ValueError as e:
-            ui.notify(str(e), type="negative", position="center", timeout=5000)
+            self.mostrar_error(str(e))
             return
 
         if not self._confirmar_reemplazo_con_cambios(
@@ -899,6 +1158,7 @@ class Gui:
         self.mostrar_modelo_cargado(datos, ruta)
         self.crear_campos_prediccion()
         self.contenedor_prediccion.set_visibility(True)
+        self.actualizar_estado()
 
     def elegir_ruta_modelo(self):
         """Abre el selector de modelos .model.json y devuelve su ruta."""
@@ -925,6 +1185,7 @@ class Gui:
         self.x_train = self.x_test = self.y_train = self.y_test = None
         self.modelo = None
         self.datos_modelo = datos
+        self.origen_modelo = "cargado"
         self.metricas = {
             "r2_train": datos["metricas"]["entrenamiento"]["r2"],
             "r2_test": datos["metricas"]["test"]["r2"],
@@ -952,11 +1213,13 @@ class Gui:
         self.etiqueta_ruta.set_content(
             "Modelo cargado: " + escape(str(ruta)) if ruta else "Modelo cargado"
         )
+        self.actualizar_estado()
 
     def actualizar_descripcion_modelo(self, evento):
         """Actualiza la descripción opcional del modelo."""
         if self.datos_modelo is not None:
             actualizar_descripcion(self.datos_modelo, evento.value or "")
+            self._actualizar_barra_estado()
 
     def ocultar_modelo(self):
         """Oculta el botón y borra el modelo anterior.
@@ -967,7 +1230,6 @@ class Gui:
         """
         self.modelo = None
         self.metricas = None
-        self.modelo = None
         self.datos_modelo = None
         self._modelo_guardado = False
         self._descripcion_guardada = ""
@@ -978,6 +1240,8 @@ class Gui:
         self.resultado_modelo.set_visibility(False)
         self.contenedor_modelo.set_visibility(False)
         self.contenedor_prediccion.set_visibility(False)
+        self.origen_modelo = None
+        self.actualizar_estado()
 
     def mostrar_boton_modelo(self):
         """Muestra el botón para crear un modelo nuevo, sin resultados anteriores.
@@ -1062,18 +1326,20 @@ class Gui:
         try:
             ruta_guardada = guardar_modelo(ruta, self.datos_modelo)
         except ValueError as e:
-            ui.notify(str(e), type="negative", position="center", timeout=5000)
+            self.mostrar_error(str(e))
             return
         except Exception as e:
-            ui.notify(f"No se pudo guardar el modelo: {e}", type="negative",
-                      position="center", timeout=5000)
+            self.mostrar_error(
+                "No se ha podido guardar el modelo.",
+                "Comprueba que puedes escribir en la carpeta elegida e inténtalo de nuevo."
+            )
             return
 
-        ui.notify(f"Modelo guardado en: {ruta_guardada}", type="positive",
-                  position="center", timeout=5000)
+        self.mostrar_exito(f"Modelo guardado en: {ruta_guardada}")
         self._modelo_guardado = True
         self._descripcion_guardada = self.datos_modelo["descripcion"]
         self.ruta_modelo = Path(ruta_guardada).resolve()
+        self._actualizar_barra_estado()
 
     def crear_campos_prediccion(self):
         """Crea un campo de entrada por cada columna de entrada del modelo.
@@ -1106,7 +1372,7 @@ class Gui:
             resultado = prediccion(self.datos_modelo, valores_usuario)
         except ValueError as e:
             self.resultado_prediccion.set_content("")
-            ui.notify(str(e), type="negative", position="center", timeout=5000)
+            self.mostrar_error(str(e))
             return
 
         salida = self.datos_modelo["columna_salida"]

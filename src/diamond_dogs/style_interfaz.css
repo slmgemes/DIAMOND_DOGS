@@ -24,14 +24,49 @@ body {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   gap: 30px;
-  padding: 40px 20px;
+  padding: 20px 20px 90px;
+}
+/* ---------- Guía del flujo e indicaciones ---------- */
+.indicacion-inicio {
+  width: 100%;
+  max-width: 800px;
+  margin: 0;
+  padding: 16px 24px;
+  text-align: center;
+  font-size: 20px;
+  background: #fbf6e9;
+  border: 1px solid #d9c49a;
+  border-left: 6px solid #7a2e2e;
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+
+.indicacion-inicio b {
+  color: #7a2e2e;
+}
+
+.indicacion-paso {
+  margin: 0;
+  color: #8a7a62;
+  font-style: italic;
+  text-align: center;
+}
+
+.titulo-paso {
+  color: #7a2e2e;
+  font-size: 24px;
+  margin: 0;
+  border-bottom: 2px solid #d9c49a;
+  padding-bottom: 8px;
+  width: 100%;
+  text-align: center;
 }
 
 .titulo {
-  font-size: 85px;
+  font-size: clamp(40px, 7vw, 85px);
   font-weight: 700;
   color: #7a2e2e;
   letter-spacing: -1px;
@@ -41,6 +76,132 @@ body {
   border-bottom: 3px solid #c9b48a;
   padding-bottom: 15px;
   width: 100%;
+}
+
+/* ---------- Barra de pasos superior ---------- */
+.pasos {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #fbf6e9; /* Mantiene el color de fondo para que no se mezcle con el texto al hacer scroll */
+  width: 100%;
+  max-width: 900px;
+  padding: 10px 0;
+  box-shadow: 0 2px 8px rgba(59, 47, 47, 0.1);
+  border-bottom: 2px solid #c9b48a;
+  margin-bottom: 10px;
+}
+
+.pasos-lista {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.paso {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Línea que une cada paso con el anterior */
+.paso::before {
+  content: "";
+  position: absolute;
+  top: 17px;
+  left: -50%;
+  width: 100%;
+  height: 3px;
+  background: #c9b48a;
+}
+
+.paso:first-child::before {
+  display: none;
+}
+
+.paso.hecho::before,
+.paso.actual::before {
+  background: #7a2e2e;
+}
+
+.paso-circulo {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  background: #fbf6e9;
+  border: 3px solid #c9b48a;
+  color: #8a7a62;
+}
+
+.paso.hecho .paso-circulo {
+  background: #7a2e2e;
+  border-color: #7a2e2e;
+  color: #fbf6e9;
+}
+
+.paso.actual .paso-circulo {
+  background: #7a2e2e;
+  border-color: #7a2e2e;
+  color: #fbf6e9;
+  box-shadow: 0 0 0 4px #d9c49a;
+}
+
+.paso.no-aplica .paso-circulo {
+  border-style: dashed;
+}
+
+.paso-nombre {
+  margin-top: 8px;
+  font-size: 16px;
+  color: #8a7a62;
+}
+
+.paso.hecho .paso-nombre {
+  color: #3b2f2f;
+}
+
+.paso.actual .paso-nombre {
+  color: #7a2e2e;
+  font-weight: 700;
+}
+
+/* ---------- Barra de estado fija inferior ---------- */
+.barra-estado {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 32px;
+  padding: 10px 16px;
+  background: #7a2e2e;
+  color: #fbf6e9;
+  font-size: 17px;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.barra-estado .aviso {
+  background: #fbf6e9;
+  color: #7a2e2e;
+  font-weight: 700;
+  padding: 2px 12px;
+  border-radius: 12px;
 }
 
 /* ---------- Bloques (tarjetas) ---------- */
@@ -55,7 +216,7 @@ body {
   border-radius: 12px;
   padding: 24px;
   width: 100%;
-  max-width: 800px;
+  max-width: 1000px;
   box-shadow: 0 4px 12px rgba(59, 47, 47, 0.05);
   display: flex;
   flex-direction: column;
@@ -105,17 +266,35 @@ button.boton {
   transform: translateY(1px);
 }
 
+.boton:disabled,
+.boton[disabled] {
+  background: #c9b48a;
+  color: #8a7a62;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
 /* ---------- Importar ---------- */
 .fila-archivo {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  width: 700px;
+  justify-content: center;
+  gap: 15px;
+  width: 100%;
+  max-width: 900px;
+  flex-wrap: wrap;
+}
+
+.fila-archivo .boton {
+  flex-shrink: 0;
+  width: 220px;
+  height: 48px;
 }
 
 .ruta {
   flex-grow: 1;
+  min-width: 280px;
   min-height: 48px;
   padding: 12px 16px;
   text-align: left;
@@ -129,12 +308,30 @@ button.boton {
   color: #5c4a4a;
 }
 
+/* ---------- Indicador de operación en curso ---------- */
+.indicador-carga {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 900px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  background: #f4ecd8;
+  border: 1px solid #c9b48a;
+  border-radius: 8px;
+  color: #7a2e2e;
+  font-weight: 700;
+  --q-primary: #7a2e2e;
+}
+
 /* ---------- Tabla ---------- */
 .contenedor-tabla {
   position: relative;
   width: 100%;
-  max-width: 850px;
-  height: 350px;
+  max-width: 1050px;
+  height: clamp(250px, 40vh, 350px);
   overflow: hidden;
   background: #fbf6e9;
   border: 1px solid #d9c49a;
@@ -271,6 +468,18 @@ button.boton {
 }
 
 /* ---------- Modelo ---------- */
+
+.formula-modelo {
+  max-width: 100%;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.tabla-metricas {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 .tabla-metricas table {
   border-collapse: collapse;
 }
@@ -320,4 +529,70 @@ button.boton {
 
 .resultado-prediccion:empty {
   display: none;
+}
+
+/* ---------- Ventana pequeña o redimensionada ---------- */
+@media (max-width: 900px) {
+  .app {
+    padding: 16px 10px 90px;
+  }
+
+  .importar,
+  .formulario,
+  .porcentajes,
+  .contenedor-preprocesado,
+  .contenedor-modelo,
+  .contenedor-prediccion {
+    padding: 16px;
+  }
+
+  .fila-archivo .boton {
+    width: 100%;
+  }
+
+  .ruta {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .paso-nombre {
+    font-size: 12px;
+  }
+
+  .indicacion-inicio {
+    font-size: 17px;
+    padding: 12px 16px;
+  }
+}
+
+/* Pantallas bajas, como 1366 x 768: se aprovecha mejor el alto. */
+@media (max-height: 800px) {
+  .app {
+    gap: 20px;
+  }
+
+  .titulo {
+    font-size: clamp(36px, 5vw, 56px);
+    padding-bottom: 10px;
+  }
+
+  .paso-circulo {
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+  }
+
+  .paso::before {
+    top: 14px;
+  }
+
+  .paso-nombre {
+    margin-top: 4px;
+    font-size: 14px;
+  }
+
+  .barra-estado {
+    padding: 6px 16px;
+    font-size: 15px;
+  }
 }

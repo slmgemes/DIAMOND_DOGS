@@ -323,7 +323,7 @@ def test_cancelar_carga_dataset_conserva_modelo_con_cambios(tmp_path):
                         interfaz, "_confirmar_reemplazo_con_cambios", return_value=False
                     ),
                 ):
-                    interfaz.elegir_archivo()
+                    await interfaz.elegir_archivo()
 
             assert interfaz.df is None
             assert interfaz.datos_modelo["descripcion"] == "Cambios pendientes"
