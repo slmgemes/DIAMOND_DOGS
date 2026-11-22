@@ -65,5 +65,7 @@ EJECUTAR APLICACIÓN
 6. En el bloque de tratamiento de valores inexistentes, escoge una estrategia de preprocesado y aplícala; el sistema permite reintentar y cambiar de opción cuantas veces sea necesario partiendo siempre de los datos originales intactos.
 
 7. Cuando no queden valores inexistentes, pulsa "Crear modelo" para entrenar el modelo y consultar su fórmula, sus métricas (R² y ECM) y el gráfico del ajuste.
+
 8. Si lo deseas, escribe una descripción del modelo en el campo opcional que aparece junto a los resultados.
+
 9. Para un modelo cargado, puedes modificar su descripción y guardarlo de nuevo.
